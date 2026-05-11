@@ -1,0 +1,25 @@
+[project]
+name = "stata-cli"
+version = "0.2.0"
+description = "Command-line interface for running Stata commands via PyStata"
+readme = "README.md"
+requires-python = ">=3.9"
+license = {text = "MIT"}
+keywords = ["stata", "cli", "statistics", "data-science"]
+
+dependencies = [
+    "click>=8.0",
+]
+
+[project.optional-dependencies]
+data = ["numpy", "pandas"]
+
+[project.scripts]
+stata-cli = "stata_cli.main:cli"
+
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]

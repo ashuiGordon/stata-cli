@@ -4,7 +4,7 @@
 [![Python Version](https://img.shields.io/badge/python-%3E%3D3.9-blue.svg)](https://www.python.org/)
 [![npm version](https://img.shields.io/npm/v/stata-cli.svg)](https://www.npmjs.com/package/stata-cli)
 
-[English](README.md)
+[中文版](README.zh.md) | [English](README.md)
 
 A command-line interface for [Stata](https://www.stata.com/) via PyStata — built for humans and AI Agents. Run Stata code, `.do` files, view data, get help, and export graphs, all from the terminal. Includes a daemon mode for sub-second execution.
 

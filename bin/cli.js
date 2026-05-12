@@ -35,6 +35,6 @@ for (const { cmd, argv } of runners) {
 console.error(
   "stata-cli: could not find a Python environment.\n" +
   "Install one of: uv (https://github.com/astral-sh/uv), " +
-  "pipx (https://pypa.github.io/pipx/), or Python 3.9+."
+  "pipx (https://pypa.github.io/pipx/), or Python 3.10+."
 );
 process.exit(1);

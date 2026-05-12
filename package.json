@@ -3,16 +3,21 @@
   "version": "0.2.2",
   "description": "Command-line interface for running Stata commands via PyStata",
   "bin": {
-    "stata-cli": "./bin/cli.js"
+    "stata-cli": "bin/cli.js"
   },
   "files": [
     "bin/",
     "src/stata_cli/"
   ],
-  "keywords": ["stata", "cli", "statistics", "data-science"],
+  "keywords": [
+    "stata",
+    "cli",
+    "statistics",
+    "data-science"
+  ],
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/ashuiGordon/stata-cli"
+    "url": "git+https://github.com/ashuiGordon/stata-cli.git"
   }
 }

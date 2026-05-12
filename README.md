@@ -1,7 +1,7 @@
 # stata-cli
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Python Version](https://img.shields.io/badge/python-%3E%3D3.9-blue.svg)](https://www.python.org/)
+[![Python Version](https://img.shields.io/badge/python-%3E%3D3.10-blue.svg)](https://www.python.org/)
 [![npm version](https://img.shields.io/npm/v/stata-cli.svg)](https://www.npmjs.com/package/stata-cli)
 
 [中文版](README.zh.md) | [English](README.md)
@@ -37,7 +37,7 @@ A command-line interface for [Stata](https://www.stata.com/) via PyStata — bui
 ### Requirements
 
 - **Stata 17+** installed on your machine (provides the PyStata library)
-- Python 3.9+
+- Python 3.10+
 
 ### Quick Start (Human Users)
 

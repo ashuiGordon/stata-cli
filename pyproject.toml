@@ -1,9 +1,9 @@
 [project]
 name = "stata-cli"
-version = "0.2.1"
+version = "0.2.2"
 description = "Command-line interface for running Stata commands via PyStata"
 readme = "README.md"
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 license = {text = "MIT"}
 keywords = ["stata", "cli", "statistics", "data-science"]
 

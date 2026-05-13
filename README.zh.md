@@ -1,5 +1,7 @@
 # stata-cli
 
+> **Stata CLI Is All Reg Monkeys Need**
+
 ![stata-cli banner](assets/banner.png)
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)

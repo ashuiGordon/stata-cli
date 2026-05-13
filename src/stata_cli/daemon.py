@@ -162,6 +162,37 @@ class DaemonServer:
             ok = self._engine.stop()
             _send_msg(conn, {"status": "ok" if ok else "no_op"})
 
+        elif cmd_type == "get_return":
+            data = self._engine.get_return(rtype=payload.get("rtype", "r"))
+            _send_msg(conn, data)
+
+        elif cmd_type == "get_vars":
+            data = self._engine.get_vars()
+            _send_msg(conn, data)
+
+        elif cmd_type == "get_matrix":
+            data = self._engine.get_matrix(payload.get("name", ""))
+            _send_msg(conn, data)
+
+        elif cmd_type == "get_labels":
+            data = self._engine.get_labels(
+                name=payload.get("name"),
+                var=payload.get("var"),
+            )
+            _send_msg(conn, data)
+
+        elif cmd_type == "get_macro":
+            data = self._engine.get_macro(payload.get("name", ""))
+            _send_msg(conn, data)
+
+        elif cmd_type == "set_macro":
+            data = self._engine.set_macro(payload.get("name", ""), payload.get("value", ""))
+            _send_msg(conn, data)
+
+        elif cmd_type == "get_frames":
+            data = self._engine.get_frames()
+            _send_msg(conn, data)
+
         elif cmd_type == "status":
             _send_msg(conn, {
                 "status": "ok",

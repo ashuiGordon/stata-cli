@@ -3,7 +3,7 @@
 ![stata-cli banner](assets/banner.png)
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Python Version](https://img.shields.io/badge/python-%3E%3D3.10-blue.svg)](https://www.python.org/)
+[![Python Version](https://img.shields.io/badge/python-%3E%3D3.9-blue.svg)](https://www.python.org/)
 [![npm version](https://img.shields.io/npm/v/stata-cli.svg)](https://www.npmjs.com/package/stata-cli)
 
 [中文版](README.zh.md) | [English](README.md)
@@ -28,10 +28,16 @@
 | **运行代码** | 执行内联 Stata 代码、多行代码块，或从 stdin 管道输入 |
 | **Do 文件** | 运行 `.do` 文件，支持 `///` 续行符和图表自动命名 |
 | **数据查看** | 以 JSON 格式查看当前数据集，支持 `if` 条件过滤和行数限制 |
+| **变量元数据** | 通过 `vars` 查看变量名、类型、格式和标签 |
+| **存储结果** | 通过 `return` 获取 r()、e()、s() 结构化 JSON 结果 |
+| **矩阵访问** | 通过 `matrix` 读取 Stata 矩阵（如 `e(b)`、`e(V)`） |
+| **值标签** | 通过 `labels` 列出和查看值标签 |
+| **宏访问** | 通过 `macro` 获取/设置 Stata 宏，包括 `c()`、`e()`、`r()` 系统宏 |
+| **Frame 管理** | 通过 `frame` 列出 Stata frame 和当前工作 frame |
 | **帮助系统** | 浏览 Stata 帮助主题，自动将 SMCL 标记转换为纯文本 |
-| **图表导出** | 自动检测并导出图表为 PNG，保存至 `~/.stata-cli/graphs/` |
+| **图表导出** | 自动检测并导出图表为 PNG/SVG/PDF，保存至 `~/.stata-cli/graphs/` |
 | **守护进程** | 后台常驻进程，通过 Unix socket 实现亚秒级执行 |
-| **输出控制** | 精简模式、JSON 输出、Token 限制管理（超限时保存完整输出到文件） |
+| **输出控制** | 精简模式、JSON 输出、Token 限制管理、日志文件输出 |
 | **中断执行** | 发送 break 信号停止正在运行的命令 |
 
 ## 安装与快速开始
@@ -39,7 +45,7 @@
 ### 环境要求
 
 - **Stata 17+**（提供 PyStata 库）
-- Python 3.10+
+- Python 3.9+
 
 ### 快速开始（人类用户）
 
@@ -186,6 +192,60 @@ stata-cli detect
 
 打印自动检测到的 Stata 安装路径。
 
+### `return` — 获取存储结果
+
+```bash
+stata-cli return r         # r() 结果（summarize 等命令后）
+stata-cli return e         # e() 结果（regress 等估计命令后）
+stata-cli return s         # s() 结果
+```
+
+以结构化 JSON 返回 r()、e()、s() 存储结果，包括标量、宏和矩阵引用。
+
+### `vars` — 变量元数据
+
+```bash
+stata-cli vars                # 所有变量
+stata-cli vars price mpg      # 指定变量
+```
+
+以 JSON 返回变量名、类型、格式和标签，比 `describe` 更适合程序化处理。
+
+### `matrix` — 读取 Stata 矩阵
+
+```bash
+stata-cli matrix e(b)         # 系数向量
+stata-cli matrix e(V)         # 方差-协方差矩阵
+```
+
+以 JSON 返回矩阵数据、维度和行列名。
+
+### `labels` — 值标签
+
+```bash
+stata-cli labels               # 列出所有值标签名称
+stata-cli labels origin        # 查看值-标签映射
+stata-cli labels --var foreign # 查看变量绑定的值标签
+```
+
+### `macro` — 获取/设置宏
+
+```bash
+stata-cli macro get "c(current_date)"
+stata-cli macro get "e(cmd)"
+stata-cli macro set myvar "你好"
+```
+
+访问 Stata 宏，包括系统宏（`c()`、`e()`、`r()`）。
+
+### `frame` — 列出 Frame
+
+```bash
+stata-cli frame
+```
+
+显示所有 Stata frame 及当前工作 frame。
+
 ## 守护进程模式
 
 守护进程在后台保持 PyStata 常驻 — 执行时间从 **~2-3 秒降至 ~85 毫秒**（35 倍加速）。
@@ -223,6 +283,8 @@ stata-cli daemon stop        # 关闭
 | `--max-tokens N` | 最大输出 Token 数（0=不限） | 0 |
 | `--no-daemon` | 强制直接执行 | 关闭 |
 | `--graphs-dir PATH` | 图表导出目录 | `~/.stata-cli/graphs/` |
+| `--graph-format [png\|svg\|pdf]` | 图表导出格式 | `png` |
+| `--log PATH` | 保存输出到日志文件 | 关闭 |
 
 ### JSON 输出
 
@@ -302,6 +364,21 @@ regress price mpg weight
 predict yhat
 list make price yhat in 1/5"
 
+# 获取回归结果的结构化 JSON
+stata-cli return e
+
+# 获取系数矩阵
+stata-cli matrix e(b)
+
+# 查看变量元数据
+stata-cli vars price mpg weight
+
+# 查看值标签
+stata-cli labels --var foreign
+
+# 读取系统宏
+stata-cli macro get "c(N)"
+
 # 加载数据后检查
 stata-cli data --if "price>10000"
 
@@ -314,6 +391,9 @@ describe"
 
 # JSON 模式用于结构化解析
 stata-cli --json run "display 1+1"
+
+# 导出 SVG 格式图表
+stata-cli --graph-format svg run "scatter price mpg"
 ```
 
 ## 贡献

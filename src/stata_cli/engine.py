@@ -50,14 +50,18 @@ _EXISTING_GRAPHN_RE = re.compile(r"\bname\s*\(\s*graph(\d+)", re.IGNORECASE)
 class StataEngine:
     """Thin wrapper around PyStata for single-process command execution."""
 
-    def __init__(self, stata_path: str, edition: str = "mp", graphs_dir: Optional[str] = None):
+    def __init__(self, stata_path: str, edition: str = "mp", graphs_dir: Optional[str] = None, graph_format: str = "png"):
         self.stata_path = stata_path
         self.edition = edition.lower()
         self.graphs_dir = graphs_dir or get_graphs_root()
+        self.graph_format = graph_format.lower()
         self._stata = None
         self._stlib = None
         self._initialized = False
         self._stop_sent = False
+        self._last_r: dict = {}
+        self._last_e: dict = {}
+        self._last_s: dict = {}
 
     def _ensure_initialized(self) -> None:
         if self._initialized:
@@ -89,6 +93,13 @@ class StataEngine:
 
         self._stata = stata_module
 
+        if self.graph_format != "png":
+            try:
+                from pystata import config as pystata_config  # type: ignore[import-untyped]
+                pystata_config.set_graph_format(self.graph_format)
+            except Exception:
+                pass
+
         try:
             from pystata.config import stlib as stlib_module  # type: ignore[import-untyped]
             self._stlib = stlib_module
@@ -113,19 +124,27 @@ class StataEngine:
         )
         log_file_stata = log_file.replace("\\", "/")
 
-        wrapped = (
+        setup = (
             f'capture log close _all\n'
             f'log using "{log_file_stata}", replace text\n'
-            f'{code}\n'
-            f'capture log close _all\n'
         )
+        teardown = 'capture log close _all\n'
 
         start = time.time()
         try:
             old_stdout = sys.stdout
             sys.stdout = io.StringIO()
             try:
-                self._stata.run(wrapped, echo=True, inline=False)
+                self._stata.run(setup + code, echo=True, inline=False)
+            finally:
+                sys.stdout = old_stdout
+
+            self._capture_stored_results()
+
+            old_stdout = sys.stdout
+            sys.stdout = io.StringIO()
+            try:
+                self._stata.run(teardown, echo=False, inline=False)
             finally:
                 captured_stdout = sys.stdout.getvalue()
                 sys.stdout = old_stdout
@@ -300,6 +319,119 @@ class StataEngine:
 
         return result
 
+    def get_return(self, rtype: str = "r") -> Dict[str, Any]:
+        """Retrieve stored results: r(), e(), or s()."""
+        self._ensure_initialized()
+        try:
+            if rtype == "r":
+                return {"status": "success", "type": "r", "results": dict(self._last_r)}
+            elif rtype == "e":
+                return {"status": "success", "type": "e", "results": dict(self._last_e)}
+            elif rtype == "s":
+                return {"status": "success", "type": "s", "results": dict(self._last_s)}
+            else:
+                return {"status": "error", "error": f"Unknown return type: {rtype}"}
+        except Exception as exc:
+            return {"status": "error", "error": str(exc)}
+
+    def get_vars(self) -> Dict[str, Any]:
+        """Return variable metadata for the current dataset."""
+        self._ensure_initialized()
+        try:
+            import sfi  # type: ignore[import-untyped]
+            nvar = sfi.Data.getVarCount()
+            nobs = sfi.Data.getObsTotal()
+            variables = []
+            for i in range(nvar):
+                name = sfi.Data.getVarName(i)
+                variables.append({
+                    "name": name,
+                    "type": sfi.Data.getVarType(i),
+                    "format": sfi.Data.getVarFormat(i),
+                    "label": sfi.Data.getVarLabel(i),
+                    "is_string": sfi.Data.isVarTypeStr(i),
+                })
+            return {
+                "status": "success",
+                "n_vars": nvar,
+                "n_obs": nobs,
+                "variables": variables,
+            }
+        except Exception as exc:
+            return {"status": "error", "error": str(exc)}
+
+    def get_matrix(self, name: str) -> Dict[str, Any]:
+        """Return a Stata matrix as a dict."""
+        self._ensure_initialized()
+        try:
+            import sfi  # type: ignore[import-untyped]
+            nrows = sfi.Matrix.getRowTotal(name)
+            ncols = sfi.Matrix.getColTotal(name)
+            row_names = sfi.Matrix.getRowNames(name)
+            col_names = sfi.Matrix.getColNames(name)
+            data = sfi.Matrix.get(name)
+            return {
+                "status": "success",
+                "name": name,
+                "rows": nrows,
+                "cols": ncols,
+                "row_names": row_names,
+                "col_names": col_names,
+                "data": data,
+            }
+        except Exception as exc:
+            return {"status": "error", "error": str(exc)}
+
+    def get_labels(self, name: Optional[str] = None, var: Optional[str] = None) -> Dict[str, Any]:
+        """Return value labels."""
+        self._ensure_initialized()
+        try:
+            import sfi  # type: ignore[import-untyped]
+            if var:
+                label_name = sfi.ValueLabel.getVarValueLabel(var)
+                if not label_name:
+                    return {"status": "success", "variable": var, "label_name": "", "labels": {}}
+                mapping = sfi.ValueLabel.getValueLabels(label_name)
+                return {"status": "success", "variable": var, "label_name": label_name, "labels": mapping}
+            if name:
+                mapping = sfi.ValueLabel.getValueLabels(name)
+                return {"status": "success", "name": name, "labels": mapping}
+            names = sfi.ValueLabel.getNames()
+            return {"status": "success", "names": names}
+        except Exception as exc:
+            return {"status": "error", "error": str(exc)}
+
+    def get_macro(self, name: str) -> Dict[str, Any]:
+        """Get the value of a Stata macro."""
+        self._ensure_initialized()
+        try:
+            import sfi  # type: ignore[import-untyped]
+            value = sfi.Macro.getGlobal(name)
+            return {"status": "success", "name": name, "value": value}
+        except Exception as exc:
+            return {"status": "error", "error": str(exc)}
+
+    def set_macro(self, name: str, value: str) -> Dict[str, Any]:
+        """Set a Stata global macro."""
+        self._ensure_initialized()
+        try:
+            import sfi  # type: ignore[import-untyped]
+            sfi.Macro.setGlobal(name, value)
+            return {"status": "success", "name": name, "value": value}
+        except Exception as exc:
+            return {"status": "error", "error": str(exc)}
+
+    def get_frames(self) -> Dict[str, Any]:
+        """Return list of Stata frames and the current working frame."""
+        self._ensure_initialized()
+        try:
+            import sfi  # type: ignore[import-untyped]
+            frames = sfi.Frame.getFrames()
+            cwf = sfi.Frame.getCWF()
+            return {"status": "success", "frames": frames, "current": cwf}
+        except Exception as exc:
+            return {"status": "error", "error": str(exc)}
+
     def stop(self) -> bool:
         """Interrupt a running Stata command. Returns True if signal sent."""
         if self._stop_sent or self._stlib is None:
@@ -315,6 +447,44 @@ class StataEngine:
         """Cleanup placeholder."""
 
     # ── graph detection ──────────────────────────────────────────────────
+
+    def _capture_stored_results(self) -> None:
+        """Snapshot r(), e(), s() results via sfi before log close clears them."""
+        try:
+            import sfi  # type: ignore[import-untyped]
+        except ImportError:
+            return
+
+        for rtype, store in [("r", "_last_r"), ("e", "_last_e"), ("s", "_last_s")]:
+            result: Dict[str, Any] = {}
+            cat = f"{rtype}()"
+            try:
+                scalar_names = sfi.SFIToolkit.listReturn(cat, "scalar")
+                if scalar_names and scalar_names.strip():
+                    for name in scalar_names.strip().split():
+                        try:
+                            result[name] = sfi.Scalar.getValue(f"{rtype}({name})")
+                        except Exception:
+                            pass
+
+                macro_names = sfi.SFIToolkit.listReturn(cat, "macro")
+                if macro_names and macro_names.strip():
+                    for name in macro_names.strip().split():
+                        try:
+                            result[name] = sfi.Macro.getGlobal(f"{rtype}({name})")
+                        except Exception:
+                            pass
+
+                if rtype != "s":
+                    matrix_names = sfi.SFIToolkit.listReturn(cat, "matrix")
+                    if matrix_names and matrix_names.strip():
+                        for name in matrix_names.strip().split():
+                            result[f"matrix:{name}"] = f"[matrix, use 'stata-cli matrix {rtype}({name})']"
+            except Exception:
+                pass
+            setattr(self, store, result)
+
+    # ── graph detection (continued) ─────────────────────────────────────
 
     def _reset_graph_tracking(self) -> None:
         if self._stlib is None:
@@ -348,12 +518,15 @@ class StataEngine:
                     self._stlib.StataSO_Execute(
                         get_encode_str(f"quietly graph display {gname}"), False
                     )
-                    graph_file = os.path.join(batch["batch_dir"], f"{gname}.png")
+                    ext = self.graph_format
+                    graph_file = os.path.join(batch["batch_dir"], f"{gname}.{ext}")
                     graph_file_stata = graph_file.replace("\\", "/")
+                    fmt_opt = f"as({ext}) " if ext != "png" else ""
+                    size_opt = "width(800) height(600)" if ext == "png" else ""
                     export_cmd = (
                         f'quietly graph export "{graph_file_stata}", '
-                        f"name({gname}) replace width(800) height(600)"
-                    )
+                        f"{fmt_opt}name({gname}) replace {size_opt}"
+                    ).rstrip()
                     rc = self._stlib.StataSO_Execute(get_encode_str(export_cmd), False)
                     if rc != 0:
                         continue

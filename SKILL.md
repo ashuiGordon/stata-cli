@@ -1,15 +1,16 @@
 ---
 name: stata-cli
 description: >-
-  Run Stata commands, .do files, view data, and get help from the terminal.
-  Wraps PyStata with a daemon mode for fast execution. Designed for AI agents.
+  Run Stata commands, .do files, view data, inspect results, and get help from
+  the terminal. Wraps PyStata with a daemon mode for fast execution. Designed
+  for AI agents.
 ---
 
 # stata-cli
 
-Run Stata code, `.do` files, view data, get help — all from the command line.
-Designed for AI agent tool-use via `Bash`. Includes a daemon mode for
-sub-second execution.
+Run Stata code, `.do` files, view data, retrieve stored results, inspect
+matrices — all from the command line. Designed for AI agent tool-use via
+`Bash`. Includes a daemon mode for sub-second execution.
 
 ## Install
 
@@ -47,6 +48,56 @@ stata-cli data --if "price>5000" --rows 50
 ```
 
 Returns the current dataset as JSON with columns, data, types, and row counts.
+
+### Retrieve stored results
+
+```bash
+stata-cli return r         # r() results (after summarize, etc.)
+stata-cli return e         # e() results (after regress, etc.)
+stata-cli return s         # s() results
+```
+
+Returns scalars, macros, and matrix references as structured JSON.
+
+### Variable metadata
+
+```bash
+stata-cli vars                # all variables
+stata-cli vars price mpg      # specific variables
+```
+
+Returns variable names, types, formats, and labels as JSON.
+
+### Read matrices
+
+```bash
+stata-cli matrix e(b)         # coefficient vector
+stata-cli matrix e(V)         # variance-covariance matrix
+```
+
+Returns matrix data, dimensions, and row/column names as JSON.
+
+### Value labels
+
+```bash
+stata-cli labels               # list all value label names
+stata-cli labels origin        # show value-label mapping
+stata-cli labels --var foreign # show label attached to a variable
+```
+
+### Macros
+
+```bash
+stata-cli macro get "c(current_date)"
+stata-cli macro get "e(cmd)"
+stata-cli macro set myvar "hello"
+```
+
+### Frames
+
+```bash
+stata-cli frame
+```
 
 ### Help
 
@@ -95,6 +146,8 @@ to force direct execution.
 | `--max-tokens N` | Max output tokens (0=unlimited) | 0 |
 | `--no-daemon` | Force direct execution | off |
 | `--graphs-dir PATH` | Graph export directory | `~/.stata-cli/graphs/` |
+| `--graph-format [png\|svg\|pdf]` | Graph export format | `png` |
+| `--log PATH` | Save output to a log file | off |
 
 Environment variables: `STATA_PATH`, `STATA_CLI_GRAPHS_DIR`.
 
@@ -131,7 +184,8 @@ Fields: `success` (bool), `output` (string), `error` (string),
 ## Graph Export
 
 When Stata code creates graphs, they are automatically detected and exported
-as PNG to `~/.stata-cli/graphs/`. File paths appear in the output:
+to `~/.stata-cli/graphs/`. Use `--graph-format` to choose PNG (default), SVG,
+or PDF. File paths appear in the output:
 
 ```
 [graph] Graph: /Users/you/.stata-cli/graphs/exec-.../Graph.png
@@ -148,6 +202,18 @@ summarize price mpg
 regress price mpg weight
 predict yhat
 list make price yhat in 1/5"
+
+# Get structured regression results
+stata-cli return e
+
+# Get coefficient matrix
+stata-cli matrix e(b)
+
+# Inspect variable metadata
+stata-cli vars price mpg
+
+# Check value labels
+stata-cli labels --var foreign
 
 # Check data after loading
 stata-cli data --if "price>10000"

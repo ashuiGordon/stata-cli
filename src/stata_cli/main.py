@@ -1,4 +1,5 @@
 """Stata CLI - run Stata commands from the terminal."""
+from __future__ import annotations
 
 import json
 import os
@@ -36,8 +37,10 @@ def _exit(code: int) -> None:
 @click.option("--max-tokens", type=int, default=0, help="Max output tokens (0=unlimited). Saves full output to file when exceeded.")
 @click.option("--no-daemon", is_flag=True, default=False, help="Force direct execution, skip daemon.")
 @click.option("--graphs-dir", envvar="STATA_CLI_GRAPHS_DIR", default=None, help="Graph export directory.")
+@click.option("--graph-format", type=click.Choice(["png", "svg", "pdf"], case_sensitive=False), default="png", help="Graph export format.")
+@click.option("--log", "log_file", default=None, help="Save Stata output to a log file.")
 @click.pass_context
-def cli(ctx, stata_path, edition, compact, use_json, timeout, max_tokens, no_daemon, graphs_dir):
+def cli(ctx, stata_path, edition, compact, use_json, timeout, max_tokens, no_daemon, graphs_dir, graph_format, log_file):
     """Command-line interface for Stata."""
     ctx.ensure_object(dict)
     ctx.obj["stata_path"] = stata_path
@@ -48,6 +51,8 @@ def cli(ctx, stata_path, edition, compact, use_json, timeout, max_tokens, no_dae
     ctx.obj["max_tokens"] = max_tokens
     ctx.obj["no_daemon"] = no_daemon
     ctx.obj["graphs_dir"] = graphs_dir
+    ctx.obj["graph_format"] = graph_format
+    ctx.obj["log_file"] = log_file
 
 
 def _get_engine(ctx) -> StataEngine:
@@ -57,7 +62,7 @@ def _get_engine(ctx) -> StataEngine:
         click.echo("Set --stata-path or the STATA_PATH environment variable.", err=True)
         _exit(EXIT_INIT_FAILURE)
     try:
-        engine = StataEngine(stata_path, ctx.obj["edition"], graphs_dir=ctx.obj.get("graphs_dir"))
+        engine = StataEngine(stata_path, ctx.obj["edition"], graphs_dir=ctx.obj.get("graphs_dir"), graph_format=ctx.obj.get("graph_format", "png"))
         return engine
     except Exception as exc:
         click.echo(f"Error initializing Stata: {exc}", err=True)
@@ -89,7 +94,25 @@ def _try_daemon(ctx, cmd_type: str, payload: dict) -> Result | None:
         return None
 
 
-def _print_result(result, compact: bool, use_json: bool = False, max_tokens: int = 0, filter_echo: bool = False) -> None:
+def _try_daemon_dict(ctx, cmd_type: str, payload: dict) -> dict | None:
+    """Try to route a dict-returning command through daemon. Returns None if unavailable."""
+    if ctx.obj.get("no_daemon"):
+        return None
+    try:
+        from .daemon import DaemonClient
+        client = DaemonClient()
+        if not client.is_running():
+            return None
+        if not client.connect():
+            return None
+        resp = client.send(cmd_type, payload)
+        client.close()
+        return resp
+    except Exception:
+        return None
+
+
+def _print_result(result, compact: bool, use_json: bool = False, max_tokens: int = 0, filter_echo: bool = False, log_file: str = None) -> None:
     output = result.output
     if output:
         output = clean_log_wrapper(output)
@@ -112,6 +135,13 @@ def _print_result(result, compact: bool, use_json: bool = False, max_tokens: int
     if graphs:
         for g in graphs:
             click.echo(f"[graph] {g.get('name', 'graph')}: {g.get('path', '')}")
+    if log_file and output:
+        try:
+            with open(log_file, "a", encoding="utf-8") as fh:
+                fh.write(output + "\n")
+            click.echo(f"[log] Output appended to: {log_file}")
+        except OSError as exc:
+            click.echo(f"[log] Failed to write log: {exc}", err=True)
     if not result.success:
         if result.error:
             click.echo(result.error, err=True)
@@ -144,7 +174,7 @@ def run(ctx, code):
     if result is None:
         engine = _get_engine(ctx)
         result = engine.run(code, timeout=ctx.obj["timeout"])
-    _print_result(result, ctx.obj["compact"], use_json=ctx.obj["json"], max_tokens=ctx.obj["max_tokens"])
+    _print_result(result, ctx.obj["compact"], use_json=ctx.obj["json"], max_tokens=ctx.obj["max_tokens"], log_file=ctx.obj.get("log_file"))
 
 
 @cli.command("do")
@@ -162,7 +192,7 @@ def do_file(ctx, path):
     if result is None:
         engine = _get_engine(ctx)
         result = engine.run_file(path, timeout=ctx.obj["timeout"])
-    _print_result(result, ctx.obj["compact"], use_json=ctx.obj["json"], max_tokens=ctx.obj["max_tokens"], filter_echo=True)
+    _print_result(result, ctx.obj["compact"], use_json=ctx.obj["json"], max_tokens=ctx.obj["max_tokens"], filter_echo=True, log_file=ctx.obj.get("log_file"))
 
 
 @cli.command()
@@ -246,6 +276,134 @@ def stop_cmd(ctx):
         pass
     click.echo("Daemon not running.", err=True)
     _exit(EXIT_USAGE_ERROR)
+
+
+@cli.command("return")
+@click.argument("rtype", type=click.Choice(["r", "e", "s"], case_sensitive=False), default="r")
+@click.pass_context
+def return_cmd(ctx, rtype):
+    """Show stored Stata results (r/e/s).
+
+    \b
+    Examples:
+      stata-cli return r       # r() results after a command
+      stata-cli return e       # e() results after estimation
+      stata-cli return s       # s() results
+    """
+    resp = _try_daemon_dict(ctx, "get_return", {"rtype": rtype.lower()})
+    if resp is None:
+        engine = _get_engine(ctx)
+        resp = engine.get_return(rtype.lower())
+    click.echo(json.dumps(resp, ensure_ascii=False, indent=2))
+
+
+@cli.command("vars")
+@click.argument("names", nargs=-1)
+@click.pass_context
+def vars_cmd(ctx, names):
+    """Show variable metadata for the current dataset.
+
+    \b
+    Examples:
+      stata-cli vars                # all variables
+      stata-cli vars price mpg      # specific variables
+    """
+    resp = _try_daemon_dict(ctx, "get_vars", {})
+    if resp is None:
+        engine = _get_engine(ctx)
+        resp = engine.get_vars()
+
+    if names and resp.get("status") == "success":
+        name_set = set(names)
+        resp["variables"] = [v for v in resp.get("variables", []) if v["name"] in name_set]
+        resp["n_vars"] = len(resp["variables"])
+
+    click.echo(json.dumps(resp, ensure_ascii=False, indent=2))
+
+
+@cli.command("matrix")
+@click.argument("name")
+@click.pass_context
+def matrix_cmd(ctx, name):
+    """Show a Stata matrix.
+
+    \b
+    Examples:
+      stata-cli matrix e(b)        # coefficient vector
+      stata-cli matrix e(V)        # variance-covariance matrix
+      stata-cli matrix r(table)    # results table
+    """
+    resp = _try_daemon_dict(ctx, "get_matrix", {"name": name})
+    if resp is None:
+        engine = _get_engine(ctx)
+        resp = engine.get_matrix(name)
+    click.echo(json.dumps(resp, ensure_ascii=False, indent=2))
+
+
+@cli.command("labels")
+@click.argument("name", required=False, default=None)
+@click.option("--var", default=None, help="Show value label attached to a variable.")
+@click.pass_context
+def labels_cmd(ctx, name, var):
+    """Show value labels.
+
+    \b
+    Examples:
+      stata-cli labels               # list all value label names
+      stata-cli labels origin         # show label-value mapping
+      stata-cli labels --var foreign  # show label for a variable
+    """
+    resp = _try_daemon_dict(ctx, "get_labels", {"name": name, "var": var})
+    if resp is None:
+        engine = _get_engine(ctx)
+        resp = engine.get_labels(name=name, var=var)
+    click.echo(json.dumps(resp, ensure_ascii=False, indent=2))
+
+
+@cli.command("macro")
+@click.argument("action", type=click.Choice(["get", "set"], case_sensitive=False))
+@click.argument("name")
+@click.argument("value", required=False, default=None)
+@click.pass_context
+def macro_cmd(ctx, action, name, value):
+    """Get or set a Stata macro.
+
+    \b
+    Examples:
+      stata-cli macro get "c(current_date)"
+      stata-cli macro get "e(cmd)"
+      stata-cli macro set myvar "hello world"
+    """
+    if action.lower() == "set":
+        if value is None:
+            click.echo("Error: value is required for 'set'.", err=True)
+            _exit(EXIT_USAGE_ERROR)
+        resp = _try_daemon_dict(ctx, "set_macro", {"name": name, "value": value})
+        if resp is None:
+            engine = _get_engine(ctx)
+            resp = engine.set_macro(name, value)
+    else:
+        resp = _try_daemon_dict(ctx, "get_macro", {"name": name})
+        if resp is None:
+            engine = _get_engine(ctx)
+            resp = engine.get_macro(name)
+    click.echo(json.dumps(resp, ensure_ascii=False, indent=2))
+
+
+@cli.command("frame")
+@click.pass_context
+def frame_cmd(ctx):
+    """List Stata frames and the current working frame.
+
+    \b
+    Examples:
+      stata-cli frame
+    """
+    resp = _try_daemon_dict(ctx, "get_frames", {})
+    if resp is None:
+        engine = _get_engine(ctx)
+        resp = engine.get_frames()
+    click.echo(json.dumps(resp, ensure_ascii=False, indent=2))
 
 
 # ── Daemon subcommands ───────────────────────────────────────────────────

@@ -3,7 +3,7 @@
 ![stata-cli banner](assets/banner.png)
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Python Version](https://img.shields.io/badge/python-%3E%3D3.10-blue.svg)](https://www.python.org/)
+[![Python Version](https://img.shields.io/badge/python-%3E%3D3.9-blue.svg)](https://www.python.org/)
 [![npm version](https://img.shields.io/npm/v/stata-cli.svg)](https://www.npmjs.com/package/stata-cli)
 
 [中文版](README.zh.md) | [English](README.md)
@@ -28,10 +28,16 @@ A command-line interface for [Stata](https://www.stata.com/) via PyStata — bui
 | **Run Code** | Execute inline Stata code, multi-line blocks, or pipe from stdin |
 | **Do Files** | Run `.do` files with `///` line continuation support and graph auto-naming |
 | **Data Viewer** | View current dataset as JSON with `if`-condition filtering and row limits |
+| **Variable Metadata** | Inspect variable names, types, formats, and labels via `vars` |
+| **Stored Results** | Retrieve r(), e(), s() results as structured JSON via `return` |
+| **Matrix Access** | Read Stata matrices (e.g. `e(b)`, `e(V)`) as JSON via `matrix` |
+| **Value Labels** | List and inspect value labels via `labels` |
+| **Macro Access** | Get/set Stata macros including `c()`, `e()`, `r()` system macros |
+| **Frame Management** | List Stata frames and current working frame via `frame` |
 | **Help System** | Browse Stata help topics with SMCL-to-plain-text conversion |
-| **Graph Export** | Auto-detect and export graphs as PNG to `~/.stata-cli/graphs/` |
+| **Graph Export** | Auto-detect and export graphs as PNG/SVG/PDF to `~/.stata-cli/graphs/` |
 | **Daemon Mode** | Persistent background process for sub-second execution via Unix socket |
-| **Output Control** | Compact mode, JSON output, token limit management with full-output file save |
+| **Output Control** | Compact mode, JSON output, token limit management, log file output |
 | **Interruption** | Send break signal to stop long-running commands |
 
 ## Installation & Quick Start
@@ -39,7 +45,7 @@ A command-line interface for [Stata](https://www.stata.com/) via PyStata — bui
 ### Requirements
 
 - **Stata 17+** installed on your machine (provides the PyStata library)
-- Python 3.10+
+- Python 3.9+
 
 ### Quick Start (Human Users)
 
@@ -186,6 +192,60 @@ stata-cli detect
 
 Prints the auto-detected Stata installation path.
 
+### `return` — Retrieve Stored Results
+
+```bash
+stata-cli return r         # r() results (after summarize, etc.)
+stata-cli return e         # e() results (after regress, etc.)
+stata-cli return s         # s() results
+```
+
+Returns r(), e(), or s() stored results as structured JSON — scalars, macros, and matrix references.
+
+### `vars` — Variable Metadata
+
+```bash
+stata-cli vars                # all variables
+stata-cli vars price mpg      # specific variables
+```
+
+Returns variable names, types, formats, and labels as JSON. More structured than `describe`.
+
+### `matrix` — Read Stata Matrices
+
+```bash
+stata-cli matrix e(b)         # coefficient vector
+stata-cli matrix e(V)         # variance-covariance matrix
+```
+
+Returns matrix data, dimensions, and row/column names as JSON.
+
+### `labels` — Value Labels
+
+```bash
+stata-cli labels               # list all value label names
+stata-cli labels origin        # show value-label mapping
+stata-cli labels --var foreign # show label attached to a variable
+```
+
+### `macro` — Get/Set Macros
+
+```bash
+stata-cli macro get "c(current_date)"
+stata-cli macro get "e(cmd)"
+stata-cli macro set myvar "hello"
+```
+
+Access Stata macros including system macros (`c()`, `e()`, `r()`).
+
+### `frame` — List Frames
+
+```bash
+stata-cli frame
+```
+
+Shows all Stata frames and the current working frame.
+
 ## Daemon Mode
 
 The daemon keeps PyStata alive in the background — reduces execution time from **~2-3s to ~85ms** (35x speedup).
@@ -223,6 +283,8 @@ The daemon auto-shuts down after 1 hour of inactivity (configurable with `--idle
 | `--max-tokens N` | Max output tokens (0=unlimited) | 0 |
 | `--no-daemon` | Force direct execution | off |
 | `--graphs-dir PATH` | Graph export directory | `~/.stata-cli/graphs/` |
+| `--graph-format [png\|svg\|pdf]` | Graph export format | `png` |
+| `--log PATH` | Save output to a log file | off |
 
 ### JSON Output
 
@@ -302,6 +364,21 @@ regress price mpg weight
 predict yhat
 list make price yhat in 1/5"
 
+# Retrieve regression results as structured JSON
+stata-cli return e
+
+# Get coefficient matrix
+stata-cli matrix e(b)
+
+# Inspect variable metadata
+stata-cli vars price mpg weight
+
+# Check value labels
+stata-cli labels --var foreign
+
+# Read system macros
+stata-cli macro get "c(N)"
+
 # Check data after loading
 stata-cli data --if "price>10000"
 
@@ -314,6 +391,9 @@ describe"
 
 # JSON mode for structured parsing
 stata-cli --json run "display 1+1"
+
+# Export graph as SVG
+stata-cli --graph-format svg run "scatter price mpg"
 ```
 
 ## Contributing

@@ -1,0 +1,850 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>stata-cli — Stata CLI Is All Reg Monkeys Need</title>
+    <meta name="description" content="Command-line interface for Stata via PyStata. Built for humans and AI Agents. Sub-second execution with daemon mode.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        *, *::before, *::after {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --accent: #024ad8;
+            --accent-hover: #0238a8;
+            --ink: #1a1a1a;
+            --cloud: #f7f7f7;
+            --white: #ffffff;
+            --text: #333333;
+            --text-muted: #666666;
+            --border: #e5e5e5;
+            --radius-card: 16px;
+            --radius-btn: 4px;
+            --max-width: 1120px;
+            --section-pad: 80px;
+            --font: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            --mono: 'JetBrains Mono', 'SF Mono', 'Fira Code', monospace;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            font-family: var(--font);
+            color: var(--text);
+            line-height: 1.6;
+            background: var(--white);
+            -webkit-font-smoothing: antialiased;
+        }
+
+        .container {
+            max-width: var(--max-width);
+            margin: 0 auto;
+            padding: 0 24px;
+        }
+
+        /* Nav */
+        nav {
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid var(--border);
+            padding: 16px 0;
+        }
+
+        nav .container {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .nav-logo {
+            font-weight: 700;
+            font-size: 1.1rem;
+            color: var(--ink);
+            text-decoration: none;
+        }
+
+        .nav-links {
+            display: flex;
+            align-items: center;
+            gap: 24px;
+        }
+
+        .nav-links a {
+            color: var(--text-muted);
+            text-decoration: none;
+            font-size: 0.9rem;
+            font-weight: 500;
+            transition: color 0.2s;
+        }
+
+        .nav-links a:hover {
+            color: var(--ink);
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 20px;
+            border-radius: var(--radius-btn);
+            font-size: 0.9rem;
+            font-weight: 600;
+            text-decoration: none;
+            transition: all 0.2s;
+            cursor: pointer;
+            border: none;
+            font-family: var(--font);
+        }
+
+        .btn-primary {
+            background: var(--accent);
+            color: var(--white);
+        }
+
+        .btn-primary:hover {
+            background: var(--accent-hover);
+        }
+
+        .btn-secondary {
+            background: var(--white);
+            color: var(--ink);
+            border: 1px solid var(--border);
+        }
+
+        .btn-secondary:hover {
+            border-color: var(--ink);
+        }
+
+        .btn-ghost {
+            background: transparent;
+            color: rgba(255, 255, 255, 0.8);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .btn-ghost:hover {
+            background: rgba(255, 255, 255, 0.1);
+            color: var(--white);
+            border-color: rgba(255, 255, 255, 0.6);
+        }
+
+        /* Hero */
+        .hero {
+            background: var(--ink);
+            padding: 100px 0 80px;
+            overflow: hidden;
+        }
+
+        .hero-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 60px;
+            align-items: center;
+        }
+
+        .hero-text h1 {
+            font-size: 2.8rem;
+            font-weight: 800;
+            color: var(--white);
+            line-height: 1.15;
+            margin-bottom: 16px;
+        }
+
+        .hero-text h1 span {
+            color: var(--accent);
+        }
+
+        .hero-text .subtitle {
+            font-size: 1.1rem;
+            color: rgba(255, 255, 255, 0.7);
+            margin-bottom: 32px;
+            line-height: 1.7;
+        }
+
+        .hero-buttons {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .hero-terminal {
+            background: #0d0d0d;
+            border-radius: var(--radius-card);
+            padding: 24px;
+            border: 1px solid #333;
+            font-family: var(--mono);
+            font-size: 0.85rem;
+            line-height: 1.8;
+            color: #e0e0e0;
+            overflow-x: auto;
+        }
+
+        .hero-terminal .prompt {
+            color: #7ec699;
+        }
+
+        .hero-terminal .cmd {
+            color: #f8f8f2;
+        }
+
+        .hero-terminal .output {
+            color: #999;
+        }
+
+        .hero-terminal .highlight {
+            color: #79b8ff;
+        }
+
+        /* Badges */
+        .badges {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 24px;
+            flex-wrap: wrap;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 4px 10px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            font-size: 0.75rem;
+            color: rgba(255, 255, 255, 0.8);
+            font-weight: 500;
+        }
+
+        /* Features */
+        .features {
+            padding: var(--section-pad) 0;
+        }
+
+        .section-header {
+            text-align: center;
+            margin-bottom: 48px;
+        }
+
+        .section-header h2 {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--ink);
+            margin-bottom: 12px;
+        }
+
+        .section-header p {
+            color: var(--text-muted);
+            font-size: 1.05rem;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 24px;
+        }
+
+        .feature-card {
+            background: var(--white);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-card);
+            padding: 32px 28px;
+            transition: box-shadow 0.2s, transform 0.2s;
+        }
+
+        .feature-card:hover {
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
+            transform: translateY(-2px);
+        }
+
+        .feature-icon {
+            font-size: 1.8rem;
+            margin-bottom: 16px;
+        }
+
+        .feature-card h3 {
+            font-size: 1.05rem;
+            font-weight: 600;
+            color: var(--ink);
+            margin-bottom: 8px;
+        }
+
+        .feature-card p {
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            line-height: 1.6;
+        }
+
+        /* Quick Start */
+        .quickstart {
+            background: var(--cloud);
+            padding: var(--section-pad) 0;
+        }
+
+        .quickstart-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 32px;
+        }
+
+        .quickstart-card {
+            background: var(--white);
+            border-radius: var(--radius-card);
+            padding: 32px;
+            border: 1px solid var(--border);
+        }
+
+        .quickstart-card h3 {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: 20px;
+            color: var(--ink);
+        }
+
+        .code-block {
+            position: relative;
+            background: var(--ink);
+            border-radius: 8px;
+            padding: 20px;
+            margin: 12px 0;
+            overflow-x: auto;
+        }
+
+        .code-block code {
+            font-family: var(--mono);
+            font-size: 0.82rem;
+            line-height: 1.7;
+            color: #e0e0e0;
+            white-space: pre;
+        }
+
+        .code-block .kw { color: #79b8ff; }
+        .code-block .str { color: #9ecbff; }
+        .code-block .comment { color: #6a737d; }
+
+        .copy-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 4px;
+            color: rgba(255, 255, 255, 0.6);
+            padding: 4px 8px;
+            font-size: 0.7rem;
+            cursor: pointer;
+            font-family: var(--font);
+            transition: all 0.2s;
+        }
+
+        .copy-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+            color: var(--white);
+        }
+
+        /* Commands */
+        .commands {
+            padding: var(--section-pad) 0;
+        }
+
+        .commands-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9rem;
+        }
+
+        .commands-table th {
+            text-align: left;
+            padding: 12px 16px;
+            background: var(--cloud);
+            font-weight: 600;
+            color: var(--ink);
+            border-bottom: 2px solid var(--border);
+        }
+
+        .commands-table td {
+            padding: 14px 16px;
+            border-bottom: 1px solid var(--border);
+            vertical-align: top;
+        }
+
+        .commands-table code {
+            font-family: var(--mono);
+            font-size: 0.82rem;
+            background: var(--cloud);
+            padding: 2px 6px;
+            border-radius: 3px;
+            color: var(--accent);
+            font-weight: 500;
+        }
+
+        .commands-table tr:hover {
+            background: var(--cloud);
+        }
+
+        /* Performance */
+        .performance {
+            background: var(--cloud);
+            padding: var(--section-pad) 0;
+        }
+
+        .perf-comparison {
+            display: grid;
+            grid-template-columns: 1fr auto 1fr;
+            gap: 40px;
+            align-items: center;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .perf-box {
+            text-align: center;
+            padding: 40px 24px;
+            background: var(--white);
+            border-radius: var(--radius-card);
+            border: 1px solid var(--border);
+        }
+
+        .perf-box .time {
+            font-size: 2.4rem;
+            font-weight: 800;
+            margin-bottom: 8px;
+        }
+
+        .perf-box.before .time {
+            color: var(--text-muted);
+        }
+
+        .perf-box.after .time {
+            color: var(--accent);
+        }
+
+        .perf-box .label {
+            font-size: 0.9rem;
+            color: var(--text-muted);
+        }
+
+        .perf-arrow {
+            font-size: 2rem;
+            color: var(--accent);
+            font-weight: 700;
+        }
+
+        .perf-speedup {
+            text-align: center;
+            margin-top: 24px;
+            font-size: 1.1rem;
+            color: var(--text-muted);
+        }
+
+        .perf-speedup strong {
+            color: var(--accent);
+            font-weight: 700;
+        }
+
+        /* Footer */
+        footer {
+            background: var(--ink);
+            padding: 60px 0 40px;
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        .footer-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 40px;
+        }
+
+        .footer-brand h3 {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: var(--white);
+            margin-bottom: 8px;
+        }
+
+        .footer-brand p {
+            font-size: 0.85rem;
+            max-width: 300px;
+        }
+
+        .footer-links {
+            display: flex;
+            gap: 40px;
+        }
+
+        .footer-links a {
+            color: rgba(255, 255, 255, 0.7);
+            text-decoration: none;
+            font-size: 0.9rem;
+            transition: color 0.2s;
+        }
+
+        .footer-links a:hover {
+            color: var(--white);
+        }
+
+        .footer-bottom {
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            padding-top: 24px;
+            font-size: 0.8rem;
+            color: rgba(255, 255, 255, 0.4);
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .hero-content {
+                grid-template-columns: 1fr;
+                gap: 40px;
+            }
+
+            .hero-text h1 {
+                font-size: 2rem;
+            }
+
+            .features-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .quickstart-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .perf-comparison {
+                grid-template-columns: 1fr;
+                gap: 16px;
+            }
+
+            .perf-arrow {
+                transform: rotate(90deg);
+            }
+
+            .commands-table {
+                font-size: 0.8rem;
+            }
+
+            .footer-content {
+                flex-direction: column;
+                gap: 32px;
+            }
+
+            .nav-links {
+                gap: 16px;
+            }
+
+            :root {
+                --section-pad: 60px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .hero-text h1 {
+                font-size: 1.7rem;
+            }
+
+            .hero-buttons {
+                flex-direction: column;
+            }
+
+            .nav-links a:not(.btn) {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<!-- Nav -->
+<nav>
+    <div class="container">
+        <a href="#" class="nav-logo">stata-cli</a>
+        <div class="nav-links">
+            <a href="#features">Features</a>
+            <a href="#quickstart">Quick Start</a>
+            <a href="#commands">Commands</a>
+            <a href="https://github.com/ashuiGordon/stata-cli" target="_blank">GitHub</a>
+            <a href="#quickstart" class="btn btn-primary">Install</a>
+        </div>
+    </div>
+</nav>
+
+<!-- Hero -->
+<section class="hero">
+    <div class="container">
+        <div class="hero-content">
+            <div class="hero-text">
+                <div class="badges">
+                    <span class="badge">v0.3.0</span>
+                    <span class="badge">MIT License</span>
+                    <span class="badge">Python 3.9+</span>
+                </div>
+                <h1>Stata CLI Is All <span>Reg Monkeys</span> Need</h1>
+                <p class="subtitle">A command-line interface for Stata via PyStata — built for humans and AI Agents. Run code, view data, export graphs, all with sub-second execution.</p>
+                <div class="hero-buttons">
+                    <a href="#quickstart" class="btn btn-primary">pip install stata-cli</a>
+                    <a href="https://github.com/ashuiGordon/stata-cli" class="btn btn-ghost" target="_blank">
+                        <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+                        GitHub
+                    </a>
+                </div>
+            </div>
+            <div class="hero-terminal">
+                <div><span class="prompt">$</span> <span class="cmd">stata-cli daemon start</span></div>
+                <div><span class="output">Daemon started (PID 42891)</span></div>
+                <div style="margin-top: 12px"><span class="prompt">$</span> <span class="cmd">stata-cli run "sysuse auto, clear</span></div>
+                <div><span class="cmd">regress price mpg weight"</span></div>
+                <div style="margin-top: 8px"><span class="output">      Source |       SS           df       MS</span></div>
+                <div><span class="output">  -----------+------------------------------</span></div>
+                <div><span class="output">       Model |  <span class="highlight">518727240</span>         2  259363620</span></div>
+                <div><span class="output">    Residual |  117320986        71  1652408.3</span></div>
+                <div style="margin-top: 8px"><span class="output">       price | Coefficient  Std. err.</span></div>
+                <div><span class="output">  -----------+-------------------------</span></div>
+                <div><span class="output">         mpg |  <span class="highlight">-49.51222</span>   86.15604</span></div>
+                <div><span class="output">      weight |   <span class="highlight">1.746559</span>   .6413538</span></div>
+                <div style="margin-top: 12px"><span class="output" style="color: #6a6;">Execution time: 0.085s</span></div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Features -->
+<section class="features" id="features">
+    <div class="container">
+        <div class="section-header">
+            <h2>Built for Modern Workflows</h2>
+            <p>Everything you need to run Stata from the terminal or integrate with AI agents.</p>
+        </div>
+        <div class="features-grid">
+            <div class="feature-card">
+                <div class="feature-icon">&#x1F916;</div>
+                <h3>Agent-Native Design</h3>
+                <p>Structured JSON output, exit codes, and SKILL.md definition. AI Agents operate Stata with zero extra setup.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">&#x26A1;</div>
+                <h3>Sub-Second Execution</h3>
+                <p>Daemon mode keeps PyStata alive in background. Startup drops from ~2-3s to ~85ms — a 35x speedup.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">&#x1F3AF;</div>
+                <h3>Full Coverage</h3>
+                <p>Run code, .do files, view data, browse help, export graphs, inspect matrices — one tool for everything.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">&#x1F4CA;</div>
+                <h3>AI-Friendly Output</h3>
+                <p>Compact mode, token limit management, JSON responses, and graph auto-naming — optimized for tool-use.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">&#x1F513;</div>
+                <h3>Open Source</h3>
+                <p>MIT license. No barriers. pip install and you're running Stata from the command line in seconds.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">&#x1F680;</div>
+                <h3>2-Step Setup</h3>
+                <p>Auto-detects your Stata installation. From install to first command in under 30 seconds.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Quick Start -->
+<section class="quickstart" id="quickstart">
+    <div class="container">
+        <div class="section-header">
+            <h2>Quick Start</h2>
+            <p>Up and running in seconds — for humans and AI agents alike.</p>
+        </div>
+        <div class="quickstart-grid">
+            <div class="quickstart-card">
+                <h3>&#x1F9D1;&#x200D;&#x1F4BB; Human Users</h3>
+                <div class="code-block">
+                    <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                    <code><span class="comment"># Install</span>
+pip install stata-cli
+
+<span class="comment"># Verify Stata is detected</span>
+stata-cli detect
+
+<span class="comment"># Run your first command</span>
+stata-cli run <span class="str">"display 1+1"</span>
+
+<span class="comment"># Start daemon for 35x faster execution</span>
+stata-cli daemon start
+stata-cli run <span class="str">"sysuse auto, clear"</span></code>
+                </div>
+            </div>
+            <div class="quickstart-card">
+                <h3>&#x1F916; AI Agents</h3>
+                <div class="code-block">
+                    <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                    <code><span class="comment"># Install & start daemon</span>
+pip install stata-cli
+stata-cli daemon start
+
+<span class="comment"># Run analysis</span>
+stata-cli run <span class="str">"sysuse auto, clear
+regress price mpg weight"</span>
+
+<span class="comment"># Get structured results</span>
+stata-cli <span class="kw">--json</span> run <span class="str">"summarize price"</span>
+stata-cli return e
+stata-cli matrix e(b)</code>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Commands -->
+<section class="commands" id="commands">
+    <div class="container">
+        <div class="section-header">
+            <h2>Commands</h2>
+            <p>13 commands covering the full Stata workflow.</p>
+        </div>
+        <table class="commands-table">
+            <thead>
+                <tr>
+                    <th>Command</th>
+                    <th>Description</th>
+                    <th>Example</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><code>run</code></td>
+                    <td>Execute inline Stata code or pipe from stdin</td>
+                    <td><code>stata-cli run "regress y x"</code></td>
+                </tr>
+                <tr>
+                    <td><code>do</code></td>
+                    <td>Execute .do files with /// continuation</td>
+                    <td><code>stata-cli do analysis.do</code></td>
+                </tr>
+                <tr>
+                    <td><code>data</code></td>
+                    <td>View current dataset as JSON</td>
+                    <td><code>stata-cli data --if "price>5000"</code></td>
+                </tr>
+                <tr>
+                    <td><code>return</code></td>
+                    <td>Retrieve r(), e(), s() stored results</td>
+                    <td><code>stata-cli return e</code></td>
+                </tr>
+                <tr>
+                    <td><code>vars</code></td>
+                    <td>Inspect variable metadata</td>
+                    <td><code>stata-cli vars price mpg</code></td>
+                </tr>
+                <tr>
+                    <td><code>matrix</code></td>
+                    <td>Read Stata matrices as JSON</td>
+                    <td><code>stata-cli matrix e(b)</code></td>
+                </tr>
+                <tr>
+                    <td><code>labels</code></td>
+                    <td>List and inspect value labels</td>
+                    <td><code>stata-cli labels origin</code></td>
+                </tr>
+                <tr>
+                    <td><code>macro</code></td>
+                    <td>Get/set Stata macros</td>
+                    <td><code>stata-cli macro get "c(N)"</code></td>
+                </tr>
+                <tr>
+                    <td><code>frame</code></td>
+                    <td>List Stata frames</td>
+                    <td><code>stata-cli frame</code></td>
+                </tr>
+                <tr>
+                    <td><code>help</code></td>
+                    <td>Browse Stata help topics</td>
+                    <td><code>stata-cli help regress</code></td>
+                </tr>
+                <tr>
+                    <td><code>stop</code></td>
+                    <td>Interrupt running command</td>
+                    <td><code>stata-cli stop</code></td>
+                </tr>
+                <tr>
+                    <td><code>detect</code></td>
+                    <td>Find Stata installation path</td>
+                    <td><code>stata-cli detect</code></td>
+                </tr>
+                <tr>
+                    <td><code>daemon</code></td>
+                    <td>Manage background daemon</td>
+                    <td><code>stata-cli daemon start</code></td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</section>
+
+<!-- Performance -->
+<section class="performance" id="performance">
+    <div class="container">
+        <div class="section-header">
+            <h2>Daemon Mode Performance</h2>
+            <p>Keep PyStata alive in the background. No more waiting for initialization.</p>
+        </div>
+        <div class="perf-comparison">
+            <div class="perf-box before">
+                <div class="time">~2.5s</div>
+                <div class="label">Without daemon</div>
+            </div>
+            <div class="perf-arrow">&rarr;</div>
+            <div class="perf-box after">
+                <div class="time">~85ms</div>
+                <div class="label">With daemon</div>
+            </div>
+        </div>
+        <p class="perf-speedup"><strong>35x faster</strong> — daemon keeps PyStata initialized via Unix socket</p>
+    </div>
+</section>
+
+<!-- Footer -->
+<footer>
+    <div class="container">
+        <div class="footer-content">
+            <div class="footer-brand">
+                <h3>stata-cli</h3>
+                <p>Command-line interface for Stata via PyStata. Built for humans and AI Agents.</p>
+            </div>
+            <div class="footer-links">
+                <a href="https://github.com/ashuiGordon/stata-cli" target="_blank">GitHub</a>
+                <a href="https://pypi.org/project/stata-cli/" target="_blank">PyPI</a>
+                <a href="https://www.npmjs.com/package/stata-cli" target="_blank">npm</a>
+                <a href="https://github.com/ashuiGordon/stata-cli/blob/main/LICENSE" target="_blank">MIT License</a>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            &copy; 2025 stata-cli contributors. Stata is a registered trademark of StataCorp LLC.
+        </div>
+    </div>
+</footer>
+
+<script>
+function copyCode(btn) {
+    const block = btn.parentElement;
+    const code = block.querySelector('code').textContent;
+    navigator.clipboard.writeText(code).then(() => {
+        btn.textContent = 'Copied!';
+        setTimeout(() => { btn.textContent = 'Copy'; }, 2000);
+    });
+}
+</script>
+
+</body>
+</html>

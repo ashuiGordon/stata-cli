@@ -255,7 +255,7 @@ Shows all Stata frames and the current working frame.
 stata-cli skill                # overview: gotchas, patterns, topic routing table
 stata-cli skill --list         # list all 57 topics with descriptions
 stata-cli skill regression     # linear regression reference
-stata-cli skill did            # difference-in-differences guide
+stata-cli skill did            # modern DiD packages (csdid, did_multiplegt)
 stata-cli skill reghdfe        # reghdfe package guide
 ```
 

@@ -255,7 +255,7 @@ stata-cli frame
 stata-cli skill                # 概览：避坑指南、常用模式、主题路由表
 stata-cli skill --list         # 列出全部 57 个主题及说明
 stata-cli skill regression     # 线性回归参考
-stata-cli skill did            # 双重差分法指南
+stata-cli skill did            # 现代 DiD 社区包 (csdid, did_multiplegt)
 stata-cli skill reghdfe        # reghdfe 包用法
 ```
 

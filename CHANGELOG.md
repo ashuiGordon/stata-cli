@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.4.1] - 2026-05-15
+
+### Improved
+- `stata-cli --help` now shows actionable skill description: "57 topics, use 'skill --list' to browse" (improves agent discoverability)
+
 ## [0.4.0] - 2026-05-15
 
 ### Added

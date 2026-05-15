@@ -413,7 +413,7 @@ def frame_cmd(ctx):
 @click.option("--list", "list_topics", is_flag=True, default=False, help="List all available topics.")
 @click.pass_context
 def skill_cmd(ctx, topic, list_topics):
-    """Built-in Stata reference library.
+    """Stata reference library — 57 topics, use 'skill --list' to browse.
 
     Without arguments, shows the overview (gotchas, common patterns, routing table).
     With a topic name, shows the detailed reference for that topic.

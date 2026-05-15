@@ -408,7 +408,7 @@ def frame_cmd(ctx):
 
 # ── Skill command ────────────────────────────────────────────────────────
 
-@cli.command("skill")
+@cli.command("skill", context_settings=dict(ignore_unknown_options=True, allow_extra_args=True))
 @click.argument("topic", required=False, default=None)
 @click.option("--list", "list_topics", is_flag=True, default=False, help="List all available topics.")
 @click.pass_context

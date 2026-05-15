@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.4.2] - 2026-05-15
+
+### Fixed
+- `stata-cli skill <topic> --compact` no longer errors — skill command now ignores unknown options (agents frequently pass global flags like `--compact` after the subcommand)
+
 ## [0.4.1] - 2026-05-15
 
 ### Improved

@@ -406,6 +406,45 @@ def frame_cmd(ctx):
     click.echo(json.dumps(resp, ensure_ascii=False, indent=2))
 
 
+# ── Skill command ────────────────────────────────────────────────────────
+
+@cli.command("skill")
+@click.argument("topic", required=False, default=None)
+@click.option("--list", "list_topics", is_flag=True, default=False, help="List all available topics.")
+@click.pass_context
+def skill_cmd(ctx, topic, list_topics):
+    """Built-in Stata reference library.
+
+    Without arguments, shows the overview (gotchas, common patterns, routing table).
+    With a topic name, shows the detailed reference for that topic.
+
+    \b
+    Examples:
+      stata-cli skill                  # overview
+      stata-cli skill --list           # list all topics
+      stata-cli skill regression       # linear regression reference
+      stata-cli skill did              # difference-in-differences
+      stata-cli skill reghdfe          # reghdfe package guide
+    """
+    from .skill_registry import get_overview, get_topic, list_topics as _list_topics
+
+    if list_topics:
+        click.echo(_list_topics())
+        return
+
+    if topic is None:
+        click.echo(get_overview())
+        return
+
+    content = get_topic(topic)
+    if content is None:
+        click.echo(f"Unknown topic: {topic}", err=True)
+        click.echo("Run 'stata-cli skill --list' to see available topics.", err=True)
+        _exit(EXIT_USAGE_ERROR)
+    else:
+        click.echo(content)
+
+
 # ── Daemon subcommands ───────────────────────────────────────────────────
 
 @cli.group()

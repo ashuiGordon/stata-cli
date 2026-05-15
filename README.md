@@ -41,6 +41,7 @@ A command-line interface for [Stata](https://www.stata.com/) via PyStata — bui
 | **Daemon Mode** | Persistent background process for sub-second execution via Unix socket |
 | **Output Control** | Compact mode, JSON output, token limit management, log file output |
 | **Interruption** | Send break signal to stop long-running commands |
+| **Skill Library** | Built-in Stata reference with 57 topics: syntax, econometrics, causal inference, packages |
 
 ## Installation & Quick Start
 
@@ -247,6 +248,18 @@ stata-cli frame
 ```
 
 Shows all Stata frames and the current working frame.
+
+### `skill` — Stata Reference Library
+
+```bash
+stata-cli skill                # overview: gotchas, patterns, topic routing table
+stata-cli skill --list         # list all 57 topics with descriptions
+stata-cli skill regression     # linear regression reference
+stata-cli skill did            # difference-in-differences guide
+stata-cli skill reghdfe        # reghdfe package guide
+```
+
+Built-in reference library covering data management, econometrics, causal inference, graphics, Mata programming, and 20+ community packages. Aliases supported (e.g. `did` for `difference-in-differences`, `panel` for `panel-data`).
 
 ## Daemon Mode
 

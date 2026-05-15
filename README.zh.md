@@ -41,6 +41,7 @@
 | **守护进程** | 后台常驻进程，通过 Unix socket 实现亚秒级执行 |
 | **输出控制** | 精简模式、JSON 输出、Token 限制管理、日志文件输出 |
 | **中断执行** | 发送 break 信号停止正在运行的命令 |
+| **Skill 知识库** | 内置 57 个 Stata 参考主题：语法、计量经济学、因果推断、社区包 |
 
 ## 安装与快速开始
 
@@ -247,6 +248,18 @@ stata-cli frame
 ```
 
 显示所有 Stata frame 及当前工作 frame。
+
+### `skill` — Stata 知识库
+
+```bash
+stata-cli skill                # 概览：避坑指南、常用模式、主题路由表
+stata-cli skill --list         # 列出全部 57 个主题及说明
+stata-cli skill regression     # 线性回归参考
+stata-cli skill did            # 双重差分法指南
+stata-cli skill reghdfe        # reghdfe 包用法
+```
+
+内置参考知识库，涵盖数据管理、计量经济学、因果推断、图表、Mata 编程及 20+ 社区包。支持别名（如 `did` 对应 `difference-in-differences`，`panel` 对应 `panel-data`）。
 
 ## 守护进程模式
 

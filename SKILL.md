@@ -2,15 +2,16 @@
 name: stata-cli
 description: >-
   Run Stata commands, .do files, view data, inspect results, and get help from
-  the terminal. Wraps PyStata with a daemon mode for fast execution. Designed
-  for AI agents.
+  the terminal. Wraps PyStata with a daemon mode for fast execution. Built-in
+  Stata reference library with 57 topics. Designed for AI agents.
 ---
 
 # stata-cli
 
 Run Stata code, `.do` files, view data, retrieve stored results, inspect
 matrices — all from the command line. Designed for AI agent tool-use via
-`Bash`. Includes a daemon mode for sub-second execution.
+`Bash`. Includes a daemon mode for sub-second execution and a built-in
+Stata reference library.
 
 ## Install
 
@@ -19,6 +20,20 @@ pip install stata-cli
 ```
 
 Requires **Stata 17+** installed on the machine (provides PyStata).
+
+## Critical Gotchas
+
+These are Stata-specific pitfalls that lead to silent bugs. Internalize before writing code.
+
+- **Missing values sort to +infinity** — `if income > 50000` includes missing! Use `if income > 50000 & !missing(income)`
+- **`=` vs `==`** — `=` is assignment, `==` is comparison. `gen x = 1 if y = 1` is wrong.
+- **Local macro syntax** — backtick + single-quote: `` `name' ``. Forgetting the closing `'` is the #1 macro bug.
+- **`by` requires sort** — use `bysort id:` instead of `by id:`.
+- **Factor variables** — use `i.race` for categorical. Bare `race` treats categories as continuous.
+- **Always check `_merge`** — `tab _merge` after every `merge`.
+- **`e()` results overwrite** — a new estimation command wipes previous `e()`. Use `estimates store`.
+
+For full gotchas and patterns: `stata-cli skill`
 
 ## Commands
 
@@ -37,17 +52,12 @@ echo "display 42" | stata-cli run -
 stata-cli do analysis.do
 ```
 
-Auto-preprocesses `///` line continuations and auto-names unnamed graph
-commands for reliable export.
-
 ### View data
 
 ```bash
 stata-cli data
 stata-cli data --if "price>5000" --rows 50
 ```
-
-Returns the current dataset as JSON with columns, data, types, and row counts.
 
 ### Retrieve stored results
 
@@ -57,8 +67,6 @@ stata-cli return e         # e() results (after regress, etc.)
 stata-cli return s         # s() results
 ```
 
-Returns scalars, macros, and matrix references as structured JSON.
-
 ### Variable metadata
 
 ```bash
@@ -66,16 +74,12 @@ stata-cli vars                # all variables
 stata-cli vars price mpg      # specific variables
 ```
 
-Returns variable names, types, formats, and labels as JSON.
-
 ### Read matrices
 
 ```bash
 stata-cli matrix e(b)         # coefficient vector
 stata-cli matrix e(V)         # variance-covariance matrix
 ```
-
-Returns matrix data, dimensions, and row/column names as JSON.
 
 ### Value labels
 
@@ -106,6 +110,20 @@ stata-cli help regress
 stata-cli help summarize
 ```
 
+### Stata reference library
+
+```bash
+stata-cli skill                # overview: gotchas, patterns, topic routing table
+stata-cli skill --list         # list all 57 topics with descriptions
+stata-cli skill regression     # linear regression reference
+stata-cli skill did            # difference-in-differences guide
+stata-cli skill reghdfe        # reghdfe package guide
+```
+
+Topics cover data management, econometrics, causal inference, graphics,
+Mata programming, and 20+ community packages. Use `stata-cli skill <topic>`
+to read detailed syntax, options, and idiomatic patterns before writing code.
+
 ### Stop execution
 
 ```bash
@@ -120,9 +138,6 @@ stata-cli detect
 
 ## Daemon Mode
 
-Keeps PyStata alive in the background — reduces startup from ~2-3s to
-milliseconds.
-
 ```bash
 stata-cli daemon start     # start background daemon
 stata-cli run "display 1"  # fast — auto-routes through daemon
@@ -130,9 +145,6 @@ stata-cli daemon status    # check daemon state
 stata-cli daemon stop      # shut down
 stata-cli daemon restart   # clean restart
 ```
-
-Commands auto-route through the daemon when it's running. Use `--no-daemon`
-to force direct execution.
 
 ## Options
 
@@ -149,13 +161,7 @@ to force direct execution.
 | `--graph-format [png\|svg\|pdf]` | Graph export format | `png` |
 | `--log PATH` | Save output to a log file | off |
 
-Environment variables: `STATA_PATH`, `STATA_CLI_GRAPHS_DIR`.
-
 ## JSON Output
-
-```bash
-stata-cli --json run "display 1+1"
-```
 
 ```json
 {
@@ -168,10 +174,6 @@ stata-cli --json run "display 1+1"
 }
 ```
 
-Fields: `success` (bool), `output` (string), `error` (string),
-`execution_time` (seconds), `return_code` (Stata r-code, 0 = ok),
-`extra` (dict, may contain `graphs` list with exported file paths).
-
 ## Exit Codes
 
 | Code | Meaning |
@@ -181,21 +183,12 @@ Fields: `success` (bool), `output` (string), `error` (string),
 | 2 | CLI usage error |
 | 3 | Stata not found / init failure |
 
-## Graph Export
-
-When Stata code creates graphs, they are automatically detected and exported
-to `~/.stata-cli/graphs/`. Use `--graph-format` to choose PNG (default), SVG,
-or PDF. File paths appear in the output:
-
-```
-[graph] Graph: /Users/you/.stata-cli/graphs/exec-.../Graph.png
-```
-
-Or in JSON mode under `extra.graphs`.
-
 ## Agent Usage Pattern
 
 ```bash
+# Learn how to do DiD before writing code
+stata-cli skill did
+
 # Full analysis workflow
 stata-cli run "sysuse auto, clear
 summarize price mpg

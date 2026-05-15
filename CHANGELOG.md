@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.4.0] - 2026-05-15
+
+### Added
+- `stata-cli skill` — built-in Stata reference library with 57 topics
+  - 37 core references: regression, panel data, DiD, RD, matching, time series, Mata, etc.
+  - 20 community package guides: reghdfe, estout, csdid, rdrobust, psmatch2, etc.
+  - `stata-cli skill` shows overview with gotchas, common patterns, and routing table
+  - `stata-cli skill --list` lists all topics grouped by category
+  - `stata-cli skill <topic>` outputs detailed reference (aliases supported: `did`, `regression`, `panel`, etc.)
+- Integrated reference content from [stata-skill](https://github.com/dylantmoore/stata-skill) (MIT license)
+
 ## [0.3.0] - 2026-05-13
 
 ### Added

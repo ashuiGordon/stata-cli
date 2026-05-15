@@ -92,6 +92,34 @@
             color: var(--ink);
         }
 
+        .lang-toggle {
+            display: inline-flex;
+            align-items: center;
+            gap: 0;
+            background: var(--cloud);
+            border-radius: 20px;
+            padding: 2px;
+            cursor: pointer;
+            border: 1px solid var(--border);
+            font-size: 0.78rem;
+            font-weight: 500;
+            font-family: var(--font);
+            user-select: none;
+        }
+
+        .lang-toggle span {
+            padding: 4px 12px;
+            border-radius: 18px;
+            transition: all 0.2s;
+            color: var(--text-muted);
+        }
+
+        .lang-toggle span.active {
+            background: var(--white);
+            color: var(--ink);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
         .btn {
             display: inline-flex;
             align-items: center;
@@ -555,7 +583,7 @@
                 flex-direction: column;
             }
 
-            .nav-links a:not(.btn) {
+            .nav-links a:not(.btn):not(.lang-toggle) {
                 display: none;
             }
         }
@@ -568,11 +596,15 @@
     <div class="container">
         <a href="#" class="nav-logo">stata-cli</a>
         <div class="nav-links">
-            <a href="#features">Features</a>
-            <a href="#quickstart">Quick Start</a>
-            <a href="#commands">Commands</a>
+            <a href="#features" data-en="Features" data-zh="功能">Features</a>
+            <a href="#quickstart" data-en="Quick Start" data-zh="快速开始">Quick Start</a>
+            <a href="#commands" data-en="Commands" data-zh="命令">Commands</a>
             <a href="https://github.com/ashuiGordon/stata-cli" target="_blank">GitHub</a>
-            <a href="#quickstart" class="btn btn-primary">Install</a>
+            <div class="lang-toggle" onclick="toggleLang()">
+                <span id="lang-en" class="active">EN</span>
+                <span id="lang-zh">中文</span>
+            </div>
+            <a href="#quickstart" class="btn btn-primary" data-en="Install" data-zh="安装">Install</a>
         </div>
     </div>
 </nav>
@@ -588,7 +620,7 @@
                     <span class="badge">Python 3.9+</span>
                 </div>
                 <h1>Stata CLI Is All <span>Reg Monkeys</span> Need</h1>
-                <p class="subtitle">A command-line interface for Stata via PyStata — built for humans and AI Agents. Run code, view data, export graphs, all with sub-second execution.</p>
+                <p class="subtitle" data-en="A command-line interface for Stata via PyStata — built for humans and AI Agents. Run code, view data, export graphs, all with sub-second execution." data-zh="通过 PyStata 在终端中使用 Stata 的命令行工具 — 为人类用户和 AI Agent 而设计。运行代码、查看数据、导出图表，全部亚秒级执行。">A command-line interface for Stata via PyStata — built for humans and AI Agents. Run code, view data, export graphs, all with sub-second execution.</p>
                 <div class="hero-buttons">
                     <a href="#quickstart" class="btn btn-primary">pip install stata-cli</a>
                     <a href="https://github.com/ashuiGordon/stata-cli" class="btn btn-ghost" target="_blank">
@@ -620,39 +652,39 @@
 <section class="features" id="features">
     <div class="container">
         <div class="section-header">
-            <h2>Built for Modern Workflows</h2>
-            <p>Everything you need to run Stata from the terminal or integrate with AI agents.</p>
+            <h2 data-en="Built for Modern Workflows" data-zh="为现代工作流而生">Built for Modern Workflows</h2>
+            <p data-en="Everything you need to run Stata from the terminal or integrate with AI agents." data-zh="在终端中运行 Stata 或集成 AI Agent 所需的一切。">Everything you need to run Stata from the terminal or integrate with AI agents.</p>
         </div>
         <div class="features-grid">
             <div class="feature-card">
                 <div class="feature-icon">&#x1F916;</div>
-                <h3>Agent-Native Design</h3>
-                <p>Structured JSON output, exit codes, and SKILL.md definition. AI Agents operate Stata with zero extra setup.</p>
+                <h3 data-en="Agent-Native Design" data-zh="Agent 原生设计">Agent-Native Design</h3>
+                <p data-en="Structured JSON output, exit codes, and SKILL.md definition. AI Agents operate Stata with zero extra setup." data-zh="结构化 JSON 输出、退出码、内置 SKILL.md 定义。AI Agent 无需额外配置即可操作 Stata。">Structured JSON output, exit codes, and SKILL.md definition. AI Agents operate Stata with zero extra setup.</p>
             </div>
             <div class="feature-card">
                 <div class="feature-icon">&#x26A1;</div>
-                <h3>Sub-Second Execution</h3>
-                <p>Daemon mode keeps PyStata alive in background. Startup drops from ~2-3s to ~85ms — a 35x speedup.</p>
+                <h3 data-en="Sub-Second Execution" data-zh="亚秒级执行">Sub-Second Execution</h3>
+                <p data-en="Daemon mode keeps PyStata alive in background. Startup drops from ~2-3s to ~85ms — a 35x speedup." data-zh="守护进程模式在后台保持 PyStata 常驻。启动时间从 ~2-3 秒降至 ~85 毫秒 — 35 倍加速。">Daemon mode keeps PyStata alive in background. Startup drops from ~2-3s to ~85ms — a 35x speedup.</p>
             </div>
             <div class="feature-card">
                 <div class="feature-icon">&#x1F3AF;</div>
-                <h3>Full Coverage</h3>
-                <p>Run code, .do files, view data, browse help, export graphs, inspect matrices — one tool for everything.</p>
+                <h3 data-en="Full Coverage" data-zh="功能全覆盖">Full Coverage</h3>
+                <p data-en="Run code, .do files, view data, browse help, export graphs, inspect matrices — one tool for everything." data-zh="运行代码、执行 .do 文件、查看数据、浏览帮助、导出图表、查看矩阵 — 一个工具搞定一切。">Run code, .do files, view data, browse help, export graphs, inspect matrices — one tool for everything.</p>
             </div>
             <div class="feature-card">
                 <div class="feature-icon">&#x1F4CA;</div>
-                <h3>AI-Friendly Output</h3>
-                <p>Compact mode, token limit management, JSON responses, and graph auto-naming — optimized for tool-use.</p>
+                <h3 data-en="AI-Friendly Output" data-zh="AI 友好输出">AI-Friendly Output</h3>
+                <p data-en="Compact mode, token limit management, JSON responses, and graph auto-naming — optimized for tool-use." data-zh="精简输出模式、Token 限制管理、JSON 响应、图表自动命名 — 专为 Agent 工具调用设计。">Compact mode, token limit management, JSON responses, and graph auto-naming — optimized for tool-use.</p>
             </div>
             <div class="feature-card">
                 <div class="feature-icon">&#x1F513;</div>
-                <h3>Open Source</h3>
-                <p>MIT license. No barriers. pip install and you're running Stata from the command line in seconds.</p>
+                <h3 data-en="Open Source" data-zh="开源免费">Open Source</h3>
+                <p data-en="MIT license. No barriers. pip install and you're running Stata from the command line in seconds." data-zh="MIT 协议，开箱即用。pip install 即可在命令行中运行 Stata。">MIT license. No barriers. pip install and you're running Stata from the command line in seconds.</p>
             </div>
             <div class="feature-card">
                 <div class="feature-icon">&#x1F680;</div>
-                <h3>2-Step Setup</h3>
-                <p>Auto-detects your Stata installation. From install to first command in under 30 seconds.</p>
+                <h3 data-en="2-Step Setup" data-zh="两步上手">2-Step Setup</h3>
+                <p data-en="Auto-detects your Stata installation. From install to first command in under 30 seconds." data-zh="自动检测 Stata 安装路径。从安装到第一条命令只需 30 秒。">Auto-detects your Stata installation. From install to first command in under 30 seconds.</p>
             </div>
         </div>
     </div>
@@ -662,12 +694,12 @@
 <section class="quickstart" id="quickstart">
     <div class="container">
         <div class="section-header">
-            <h2>Quick Start</h2>
-            <p>Up and running in seconds — for humans and AI agents alike.</p>
+            <h2 data-en="Quick Start" data-zh="快速开始">Quick Start</h2>
+            <p data-en="Up and running in seconds — for humans and AI agents alike." data-zh="秒级上手 — 面向人类用户和 AI Agent。">Up and running in seconds — for humans and AI agents alike.</p>
         </div>
         <div class="quickstart-grid">
             <div class="quickstart-card">
-                <h3>&#x1F9D1;&#x200D;&#x1F4BB; Human Users</h3>
+                <h3 data-en="&#x1F9D1;&#x200D;&#x1F4BB; Human Users" data-zh="&#x1F9D1;&#x200D;&#x1F4BB; 人类用户">&#x1F9D1;&#x200D;&#x1F4BB; Human Users</h3>
                 <div class="code-block">
                     <button class="copy-btn" onclick="copyCode(this)">Copy</button>
                     <code><span class="comment"># Install</span>
@@ -685,7 +717,7 @@ stata-cli run <span class="str">"sysuse auto, clear"</span></code>
                 </div>
             </div>
             <div class="quickstart-card">
-                <h3>&#x1F916; AI Agents</h3>
+                <h3 data-en="&#x1F916; AI Agents" data-zh="&#x1F916; AI Agent">&#x1F916; AI Agents</h3>
                 <div class="code-block">
                     <button class="copy-btn" onclick="copyCode(this)">Copy</button>
                     <code><span class="comment"># Install & start daemon</span>
@@ -710,81 +742,81 @@ stata-cli matrix e(b)</code>
 <section class="commands" id="commands">
     <div class="container">
         <div class="section-header">
-            <h2>Commands</h2>
-            <p>13 commands covering the full Stata workflow.</p>
+            <h2 data-en="Commands" data-zh="命令">Commands</h2>
+            <p data-en="13 commands covering the full Stata workflow." data-zh="13 个命令覆盖完整的 Stata 工作流。">13 commands covering the full Stata workflow.</p>
         </div>
         <table class="commands-table">
             <thead>
                 <tr>
-                    <th>Command</th>
-                    <th>Description</th>
-                    <th>Example</th>
+                    <th data-en="Command" data-zh="命令">Command</th>
+                    <th data-en="Description" data-zh="说明">Description</th>
+                    <th data-en="Example" data-zh="示例">Example</th>
                 </tr>
             </thead>
             <tbody>
                 <tr>
                     <td><code>run</code></td>
-                    <td>Execute inline Stata code or pipe from stdin</td>
+                    <td data-en="Execute inline Stata code or pipe from stdin" data-zh="执行内联 Stata 代码或从 stdin 管道输入">Execute inline Stata code or pipe from stdin</td>
                     <td><code>stata-cli run "regress y x"</code></td>
                 </tr>
                 <tr>
                     <td><code>do</code></td>
-                    <td>Execute .do files with /// continuation</td>
+                    <td data-en="Execute .do files with /// continuation" data-zh="执行 .do 文件，支持 /// 续行符">Execute .do files with /// continuation</td>
                     <td><code>stata-cli do analysis.do</code></td>
                 </tr>
                 <tr>
                     <td><code>data</code></td>
-                    <td>View current dataset as JSON</td>
+                    <td data-en="View current dataset as JSON" data-zh="以 JSON 格式查看当前数据集">View current dataset as JSON</td>
                     <td><code>stata-cli data --if "price>5000"</code></td>
                 </tr>
                 <tr>
                     <td><code>return</code></td>
-                    <td>Retrieve r(), e(), s() stored results</td>
+                    <td data-en="Retrieve r(), e(), s() stored results" data-zh="获取 r()、e()、s() 存储结果">Retrieve r(), e(), s() stored results</td>
                     <td><code>stata-cli return e</code></td>
                 </tr>
                 <tr>
                     <td><code>vars</code></td>
-                    <td>Inspect variable metadata</td>
+                    <td data-en="Inspect variable metadata" data-zh="查看变量元数据">Inspect variable metadata</td>
                     <td><code>stata-cli vars price mpg</code></td>
                 </tr>
                 <tr>
                     <td><code>matrix</code></td>
-                    <td>Read Stata matrices as JSON</td>
+                    <td data-en="Read Stata matrices as JSON" data-zh="以 JSON 读取 Stata 矩阵">Read Stata matrices as JSON</td>
                     <td><code>stata-cli matrix e(b)</code></td>
                 </tr>
                 <tr>
                     <td><code>labels</code></td>
-                    <td>List and inspect value labels</td>
+                    <td data-en="List and inspect value labels" data-zh="列出和查看值标签">List and inspect value labels</td>
                     <td><code>stata-cli labels origin</code></td>
                 </tr>
                 <tr>
                     <td><code>macro</code></td>
-                    <td>Get/set Stata macros</td>
+                    <td data-en="Get/set Stata macros" data-zh="获取/设置 Stata 宏">Get/set Stata macros</td>
                     <td><code>stata-cli macro get "c(N)"</code></td>
                 </tr>
                 <tr>
                     <td><code>frame</code></td>
-                    <td>List Stata frames</td>
+                    <td data-en="List Stata frames" data-zh="列出 Stata Frame">List Stata frames</td>
                     <td><code>stata-cli frame</code></td>
                 </tr>
                 <tr>
                     <td><code>help</code></td>
-                    <td>Browse Stata help topics</td>
+                    <td data-en="Browse Stata help topics" data-zh="浏览 Stata 帮助主题">Browse Stata help topics</td>
                     <td><code>stata-cli help regress</code></td>
                 </tr>
                 <tr>
                     <td><code>stop</code></td>
-                    <td>Interrupt running command</td>
+                    <td data-en="Interrupt running command" data-zh="中断正在运行的命令">Interrupt running command</td>
                     <td><code>stata-cli stop</code></td>
                 </tr>
                 <tr>
                     <td><code>detect</code></td>
-                    <td>Find Stata installation path</td>
+                    <td data-en="Find Stata installation path" data-zh="检测 Stata 安装路径">Find Stata installation path</td>
                     <td><code>stata-cli detect</code></td>
                 </tr>
                 <tr>
                     <td><code>daemon</code></td>
-                    <td>Manage background daemon</td>
+                    <td data-en="Manage background daemon" data-zh="管理后台守护进程">Manage background daemon</td>
                     <td><code>stata-cli daemon start</code></td>
                 </tr>
             </tbody>
@@ -796,21 +828,21 @@ stata-cli matrix e(b)</code>
 <section class="performance" id="performance">
     <div class="container">
         <div class="section-header">
-            <h2>Daemon Mode Performance</h2>
-            <p>Keep PyStata alive in the background. No more waiting for initialization.</p>
+            <h2 data-en="Daemon Mode Performance" data-zh="守护进程性能">Daemon Mode Performance</h2>
+            <p data-en="Keep PyStata alive in the background. No more waiting for initialization." data-zh="在后台保持 PyStata 常驻，无需等待初始化。">Keep PyStata alive in the background. No more waiting for initialization.</p>
         </div>
         <div class="perf-comparison">
             <div class="perf-box before">
                 <div class="time">~2.5s</div>
-                <div class="label">Without daemon</div>
+                <div class="label" data-en="Without daemon" data-zh="无守护进程">Without daemon</div>
             </div>
             <div class="perf-arrow">&rarr;</div>
             <div class="perf-box after">
                 <div class="time">~85ms</div>
-                <div class="label">With daemon</div>
+                <div class="label" data-en="With daemon" data-zh="使用守护进程">With daemon</div>
             </div>
         </div>
-        <p class="perf-speedup"><strong>35x faster</strong> — daemon keeps PyStata initialized via Unix socket</p>
+        <p class="perf-speedup" data-en="&lt;strong&gt;35x faster&lt;/strong&gt; — daemon keeps PyStata initialized via Unix socket" data-zh="&lt;strong&gt;35 倍加速&lt;/strong&gt; — 守护进程通过 Unix socket 保持 PyStata 初始化状态"><strong>35x faster</strong> — daemon keeps PyStata initialized via Unix socket</p>
     </div>
 </section>
 
@@ -820,13 +852,13 @@ stata-cli matrix e(b)</code>
         <div class="footer-content">
             <div class="footer-brand">
                 <h3>stata-cli</h3>
-                <p>Command-line interface for Stata via PyStata. Built for humans and AI Agents.</p>
+                <p data-en="Command-line interface for Stata via PyStata. Built for humans and AI Agents." data-zh="通过 PyStata 在终端中使用 Stata 的命令行工具。为人类用户和 AI Agent 而设计。">Command-line interface for Stata via PyStata. Built for humans and AI Agents.</p>
             </div>
             <div class="footer-links">
                 <a href="https://github.com/ashuiGordon/stata-cli" target="_blank">GitHub</a>
                 <a href="https://pypi.org/project/stata-cli/" target="_blank">PyPI</a>
                 <a href="https://www.npmjs.com/package/stata-cli" target="_blank">npm</a>
-                <a href="https://github.com/ashuiGordon/stata-cli/blob/main/LICENSE" target="_blank">MIT License</a>
+                <a href="https://github.com/ashuiGordon/stata-cli/blob/main/LICENSE" target="_blank" data-en="MIT License" data-zh="MIT 许可证">MIT License</a>
             </div>
         </div>
         <div class="footer-bottom">
@@ -836,12 +868,32 @@ stata-cli matrix e(b)</code>
 </footer>
 
 <script>
+var currentLang = 'en';
+
+function toggleLang() {
+    currentLang = currentLang === 'en' ? 'zh' : 'en';
+    document.getElementById('lang-en').classList.toggle('active', currentLang === 'en');
+    document.getElementById('lang-zh').classList.toggle('active', currentLang === 'zh');
+    document.documentElement.lang = currentLang === 'zh' ? 'zh-CN' : 'en';
+
+    document.querySelectorAll('[data-' + currentLang + ']').forEach(function(el) {
+        var val = el.getAttribute('data-' + currentLang);
+        if (el.hasAttribute('data-en') && el.hasAttribute('data-zh')) {
+            if (val.indexOf('<') !== -1) {
+                el.innerHTML = val;
+            } else {
+                el.textContent = val;
+            }
+        }
+    });
+}
+
 function copyCode(btn) {
-    const block = btn.parentElement;
-    const code = block.querySelector('code').textContent;
-    navigator.clipboard.writeText(code).then(() => {
-        btn.textContent = 'Copied!';
-        setTimeout(() => { btn.textContent = 'Copy'; }, 2000);
+    var block = btn.parentElement;
+    var code = block.querySelector('code').textContent;
+    navigator.clipboard.writeText(code).then(function() {
+        btn.textContent = currentLang === 'zh' ? '已复制!' : 'Copied!';
+        setTimeout(function() { btn.textContent = currentLang === 'zh' ? '复制' : 'Copy'; }, 2000);
     });
 }
 </script>

@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.5.0] - 2026-05-19
+
+### Added
+- Multi-session daemon support: `--session <name>` global option for running parallel Stata instances
+  - `stata-cli --session proj_a daemon start` — start a named session
+  - `stata-cli --session proj_a run "use data.dta"` — route commands to specific session
+  - `stata-cli daemon status` — list all running sessions
+  - `stata-cli daemon stop --all` — stop all sessions at once
+- Each session has independent state (data, estimates, macros) — like opening multiple Stata windows
+
 ## [0.4.2] - 2026-05-15
 
 ### Fixed

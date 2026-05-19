@@ -36,11 +36,12 @@ def _exit(code: int) -> None:
 @click.option("--timeout", type=float, default=600.0, help="Execution timeout in seconds.")
 @click.option("--max-tokens", type=int, default=0, help="Max output tokens (0=unlimited). Saves full output to file when exceeded.")
 @click.option("--no-daemon", is_flag=True, default=False, help="Force direct execution, skip daemon.")
+@click.option("--session", default="default", help="Daemon session name (for parallel sessions).")
 @click.option("--graphs-dir", envvar="STATA_CLI_GRAPHS_DIR", default=None, help="Graph export directory.")
 @click.option("--graph-format", type=click.Choice(["png", "svg", "pdf"], case_sensitive=False), default="png", help="Graph export format.")
 @click.option("--log", "log_file", default=None, help="Save Stata output to a log file.")
 @click.pass_context
-def cli(ctx, stata_path, edition, compact, use_json, timeout, max_tokens, no_daemon, graphs_dir, graph_format, log_file):
+def cli(ctx, stata_path, edition, compact, use_json, timeout, max_tokens, no_daemon, session, graphs_dir, graph_format, log_file):
     """Command-line interface for Stata."""
     ctx.ensure_object(dict)
     ctx.obj["stata_path"] = stata_path
@@ -50,6 +51,7 @@ def cli(ctx, stata_path, edition, compact, use_json, timeout, max_tokens, no_dae
     ctx.obj["timeout"] = timeout
     ctx.obj["max_tokens"] = max_tokens
     ctx.obj["no_daemon"] = no_daemon
+    ctx.obj["session"] = session
     ctx.obj["graphs_dir"] = graphs_dir
     ctx.obj["graph_format"] = graph_format
     ctx.obj["log_file"] = log_file
@@ -75,7 +77,7 @@ def _try_daemon(ctx, cmd_type: str, payload: dict) -> Result | None:
         return None
     try:
         from .daemon import DaemonClient
-        client = DaemonClient()
+        client = DaemonClient(ctx.obj.get("session", "default"))
         if not client.is_running():
             return None
         if not client.connect():
@@ -100,7 +102,7 @@ def _try_daemon_dict(ctx, cmd_type: str, payload: dict) -> dict | None:
         return None
     try:
         from .daemon import DaemonClient
-        client = DaemonClient()
+        client = DaemonClient(ctx.obj.get("session", "default"))
         if not client.is_running():
             return None
         if not client.connect():
@@ -222,7 +224,7 @@ def data_cmd(ctx, if_condition, rows):
     # Try daemon first
     try:
         from .daemon import DaemonClient
-        client = DaemonClient()
+        client = DaemonClient(ctx.obj.get("session", "default"))
         if not ctx.obj.get("no_daemon") and client.is_running() and client.connect():
             resp = client.send("get_data", {"if_condition": if_condition, "max_rows": rows})
             client.close()
@@ -266,7 +268,7 @@ def stop_cmd(ctx):
     """Interrupt a running Stata command (daemon mode)."""
     try:
         from .daemon import DaemonClient
-        client = DaemonClient()
+        client = DaemonClient(ctx.obj.get("session", "default"))
         if client.is_running() and client.connect():
             resp = client.send("stop")
             client.close()
@@ -462,48 +464,68 @@ def daemon_start(ctx, idle_timeout):
         click.echo("Error: Stata installation not found.", err=True)
         _exit(EXIT_INIT_FAILURE)
 
+    session = ctx.obj["session"]
     from .daemon import start_daemon, DaemonClient
-    client = DaemonClient()
+    client = DaemonClient(session)
     if client.is_running():
-        click.echo("Daemon already running.")
+        click.echo(f"Daemon '{session}' already running.")
         return
 
-    click.echo("Starting daemon...")
-    ok = start_daemon(stata_path, ctx.obj["edition"], graphs_dir=ctx.obj.get("graphs_dir"), idle_timeout=idle_timeout)
+    click.echo(f"Starting daemon '{session}'...")
+    ok = start_daemon(stata_path, ctx.obj["edition"], graphs_dir=ctx.obj.get("graphs_dir"), idle_timeout=idle_timeout, session=session)
     if ok:
-        click.echo("Daemon started.")
+        click.echo(f"Daemon '{session}' started.")
     else:
         click.echo("Failed to start daemon.", err=True)
         _exit(EXIT_INIT_FAILURE)
 
 
 @daemon.command("stop")
-def daemon_stop():
+@click.option("--all", "stop_all", is_flag=True, default=False, help="Stop all running sessions.")
+@click.pass_context
+def daemon_stop(ctx, stop_all):
     """Stop the Stata daemon."""
-    from .daemon import stop_daemon, DaemonClient
-    client = DaemonClient()
-    if not client.is_running():
-        click.echo("Daemon not running.")
+    from .daemon import stop_daemon as _stop, stop_all_daemons, DaemonClient
+    if stop_all:
+        count = stop_all_daemons()
+        click.echo(f"Stopped {count} session(s).")
         return
-    click.echo("Stopping daemon...")
-    stop_daemon()
-    click.echo("Daemon stopped.")
+    session = ctx.obj["session"]
+    client = DaemonClient(session)
+    if not client.is_running():
+        click.echo(f"Daemon '{session}' not running.")
+        return
+    click.echo(f"Stopping daemon '{session}'...")
+    _stop(session)
+    click.echo(f"Daemon '{session}' stopped.")
 
 
 @daemon.command("status")
-def daemon_status_cmd():
+@click.pass_context
+def daemon_status_cmd(ctx):
     """Show daemon status."""
-    from .daemon import daemon_status
-    info = daemon_status()
-    if not info:
-        click.echo("Daemon not running.")
-        return
-    uptime = info.get("uptime", 0)
-    idle = info.get("idle", 0)
-    click.echo(f"Daemon running (PID {info.get('pid', '?')})")
-    click.echo(f"  Stata: {info.get('stata_path', '?')} ({info.get('edition', '?')})")
-    click.echo(f"  Uptime: {int(uptime)}s")
-    click.echo(f"  Idle: {int(idle)}s")
+    from .daemon import daemon_status, list_sessions
+    session = ctx.obj["session"]
+    if session == "default":
+        sessions = list_sessions()
+        if not sessions:
+            click.echo("No daemons running.")
+            return
+        for s in sessions:
+            uptime = s.get("uptime", 0)
+            idle = s.get("idle", 0)
+            click.echo(f"[{s['session']}] PID {s.get('pid', '?')} | uptime {int(uptime)}s | idle {int(idle)}s")
+    else:
+        info = daemon_status(session)
+        if not info:
+            click.echo(f"Daemon '{session}' not running.")
+            return
+        uptime = info.get("uptime", 0)
+        idle = info.get("idle", 0)
+        click.echo(f"Daemon '{session}' running (PID {info.get('pid', '?')})")
+        click.echo(f"  Stata: {info.get('stata_path', '?')} ({info.get('edition', '?')})")
+        click.echo(f"  Uptime: {int(uptime)}s")
+        click.echo(f"  Idle: {int(idle)}s")
 
 
 @daemon.command("restart")
@@ -511,21 +533,22 @@ def daemon_status_cmd():
 @click.pass_context
 def daemon_restart(ctx, idle_timeout):
     """Restart the Stata daemon."""
-    from .daemon import stop_daemon, start_daemon, DaemonClient
-    client = DaemonClient()
+    session = ctx.obj["session"]
+    from .daemon import stop_daemon as _stop, start_daemon, DaemonClient
+    client = DaemonClient(session)
     if client.is_running():
-        click.echo("Stopping daemon...")
-        stop_daemon()
+        click.echo(f"Stopping daemon '{session}'...")
+        _stop(session)
 
     stata_path = ctx.obj["stata_path"] or detect_stata_path()
     if not stata_path:
         click.echo("Error: Stata installation not found.", err=True)
         _exit(EXIT_INIT_FAILURE)
 
-    click.echo("Starting daemon...")
-    ok = start_daemon(stata_path, ctx.obj["edition"], graphs_dir=ctx.obj.get("graphs_dir"), idle_timeout=idle_timeout)
+    click.echo(f"Starting daemon '{session}'...")
+    ok = start_daemon(stata_path, ctx.obj["edition"], graphs_dir=ctx.obj.get("graphs_dir"), idle_timeout=idle_timeout, session=session)
     if ok:
-        click.echo("Daemon restarted.")
+        click.echo(f"Daemon '{session}' restarted.")
     else:
         click.echo("Failed to restart daemon.", err=True)
         _exit(EXIT_INIT_FAILURE)

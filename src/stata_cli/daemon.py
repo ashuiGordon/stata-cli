@@ -18,11 +18,17 @@ from pathlib import Path
 from typing import Any, Dict, Optional
 
 _STATE_DIR = os.path.join(os.path.expanduser("~"), ".stata-cli")
-_PID_FILE = os.path.join(_STATE_DIR, "daemon.pid")
-_SOCK_FILE = os.path.join(_STATE_DIR, "daemon.sock")
 _IS_WINDOWS = platform.system() == "Windows"
 _DEFAULT_PORT = 4718
 _IDLE_TIMEOUT = 3600  # 1 hour
+
+
+def _pid_file(session: str = "default") -> str:
+    return os.path.join(_STATE_DIR, f"daemon-{session}.pid")
+
+
+def _sock_file(session: str = "default") -> str:
+    return os.path.join(_STATE_DIR, f"daemon-{session}.sock")
 
 
 # ── wire protocol: 4-byte big-endian length prefix + JSON ────────────────
@@ -57,11 +63,13 @@ class DaemonServer:
     """Single-threaded daemon that wraps a StataEngine."""
 
     def __init__(self, stata_path: str, edition: str = "mp",
-                 graphs_dir: Optional[str] = None, idle_timeout: float = _IDLE_TIMEOUT):
+                 graphs_dir: Optional[str] = None, idle_timeout: float = _IDLE_TIMEOUT,
+                 session: str = "default"):
         self.stata_path = stata_path
         self.edition = edition
         self.graphs_dir = graphs_dir
         self.idle_timeout = idle_timeout
+        self.session = session
         self._engine = None
         self._running = False
         self._start_time = time.time()
@@ -77,6 +85,7 @@ class DaemonServer:
         os.makedirs(_STATE_DIR, exist_ok=True)
 
         sock = self._create_listener()
+        self._port = sock.getsockname()[1] if _IS_WINDOWS else 0
         self._write_pid()
         self._running = True
 
@@ -113,15 +122,29 @@ class DaemonServer:
         if _IS_WINDOWS:
             sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-            sock.bind(("127.0.0.1", _DEFAULT_PORT))
+            port = self._find_free_port()
+            sock.bind(("127.0.0.1", port))
         else:
-            if os.path.exists(_SOCK_FILE):
-                os.unlink(_SOCK_FILE)
+            sock_path = _sock_file(self.session)
+            if os.path.exists(sock_path):
+                os.unlink(sock_path)
             sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-            sock.bind(_SOCK_FILE)
+            sock.bind(sock_path)
         sock.listen(4)
         sock.setblocking(False)
         return sock
+
+    @staticmethod
+    def _find_free_port() -> int:
+        for port in range(_DEFAULT_PORT, _DEFAULT_PORT + 200):
+            try:
+                s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                s.bind(("127.0.0.1", port))
+                s.close()
+                return port
+            except OSError:
+                continue
+        raise RuntimeError("No free port found")
 
     def _handle_connection(self, conn: socket.socket) -> None:
         conn.settimeout(600.0)
@@ -216,18 +239,19 @@ class DaemonServer:
         return asdict(result)
 
     def _write_pid(self) -> None:
-        addr = f"127.0.0.1:{_DEFAULT_PORT}" if _IS_WINDOWS else _SOCK_FILE
-        with open(_PID_FILE, "w") as fh:
-            json.dump({"pid": os.getpid(), "address": addr, "started": time.time()}, fh)
+        sock_path = _sock_file(self.session)
+        addr = f"127.0.0.1:{self._port}" if _IS_WINDOWS else sock_path
+        with open(_pid_file(self.session), "w") as fh:
+            json.dump({"pid": os.getpid(), "address": addr, "started": time.time(), "session": self.session}, fh)
 
     def _cleanup(self) -> None:
         try:
-            os.unlink(_PID_FILE)
+            os.unlink(_pid_file(self.session))
         except OSError:
             pass
         if not _IS_WINDOWS:
             try:
-                os.unlink(_SOCK_FILE)
+                os.unlink(_sock_file(self.session))
             except OSError:
                 pass
 
@@ -236,9 +260,10 @@ class DaemonServer:
 
 
 def run_daemon_server(stata_path: str, edition: str = "mp",
-                      graphs_dir: Optional[str] = None, idle_timeout: float = _IDLE_TIMEOUT) -> None:
+                      graphs_dir: Optional[str] = None, idle_timeout: float = _IDLE_TIMEOUT,
+                      session: str = "default") -> None:
     """Entry point called in the daemon subprocess."""
-    server = DaemonServer(stata_path, edition, graphs_dir=graphs_dir, idle_timeout=idle_timeout)
+    server = DaemonServer(stata_path, edition, graphs_dir=graphs_dir, idle_timeout=idle_timeout, session=session)
     server.serve()
 
 
@@ -249,14 +274,16 @@ def run_daemon_server(stata_path: str, edition: str = "mp",
 class DaemonClient:
     """Connects to a running daemon over the Unix socket / TCP port."""
 
-    def __init__(self) -> None:
+    def __init__(self, session: str = "default") -> None:
+        self.session = session
         self._sock: Optional[socket.socket] = None
 
     def is_running(self) -> bool:
-        if not os.path.isfile(_PID_FILE):
+        pid_path = _pid_file(self.session)
+        if not os.path.isfile(pid_path):
             return False
         try:
-            with open(_PID_FILE) as fh:
+            with open(pid_path) as fh:
                 info = json.load(fh)
             pid = info["pid"]
             os.kill(pid, 0)
@@ -298,30 +325,33 @@ class DaemonClient:
             self._sock = None
 
     def _read_pid(self) -> Optional[Dict]:
-        if not os.path.isfile(_PID_FILE):
+        pid_path = _pid_file(self.session)
+        if not os.path.isfile(pid_path):
             return None
         try:
-            with open(_PID_FILE) as fh:
+            with open(pid_path) as fh:
                 return json.load(fh)
         except (json.JSONDecodeError, OSError):
             return None
 
 
 def start_daemon(stata_path: str, edition: str = "mp",
-                 graphs_dir: Optional[str] = None, idle_timeout: float = _IDLE_TIMEOUT) -> bool:
+                 graphs_dir: Optional[str] = None, idle_timeout: float = _IDLE_TIMEOUT,
+                 session: str = "default") -> bool:
     """Launch daemon as a detached background process. Returns True on success."""
-    client = DaemonClient()
+    client = DaemonClient(session)
     if client.is_running():
         return True
 
     os.makedirs(_STATE_DIR, exist_ok=True)
-    log_file = os.path.join(_STATE_DIR, "daemon.log")
+    log_file = os.path.join(_STATE_DIR, f"daemon-{session}.log")
 
     args = [
         sys.executable, "-m", "stata_cli.daemon",
         "--stata-path", stata_path,
         "--edition", edition,
         "--idle-timeout", str(int(idle_timeout)),
+        "--session", session,
     ]
     if graphs_dir:
         args += ["--graphs-dir", graphs_dir]
@@ -345,9 +375,9 @@ def start_daemon(stata_path: str, edition: str = "mp",
     return False
 
 
-def stop_daemon() -> bool:
+def stop_daemon(session: str = "default") -> bool:
     """Ask the daemon to shut down gracefully."""
-    client = DaemonClient()
+    client = DaemonClient(session)
     if not client.is_running():
         return True
     if client.connect():
@@ -362,7 +392,7 @@ def stop_daemon() -> bool:
             return True
     # Force kill
     try:
-        with open(_PID_FILE) as fh:
+        with open(_pid_file(session)) as fh:
             pid = json.load(fh)["pid"]
         os.kill(pid, signal.SIGKILL if not _IS_WINDOWS else signal.SIGTERM)
     except Exception:
@@ -370,9 +400,43 @@ def stop_daemon() -> bool:
     return True
 
 
-def daemon_status() -> Optional[Dict[str, Any]]:
-    """Query the running daemon's status. Returns None if not running."""
-    client = DaemonClient()
+def stop_all_daemons() -> int:
+    """Stop all running daemon sessions. Returns count stopped."""
+    import glob
+    count = 0
+    for pid_path in glob.glob(os.path.join(_STATE_DIR, "daemon-*.pid")):
+        name = os.path.basename(pid_path)
+        session = name[len("daemon-"):-len(".pid")]
+        stop_daemon(session)
+        count += 1
+    return count
+
+
+def list_sessions() -> list:
+    """Return list of running session info dicts."""
+    import glob
+    sessions = []
+    for pid_path in glob.glob(os.path.join(_STATE_DIR, "daemon-*.pid")):
+        name = os.path.basename(pid_path)
+        session = name[len("daemon-"):-len(".pid")]
+        client = DaemonClient(session)
+        if not client.is_running():
+            continue
+        info = {"session": session}
+        if client.connect():
+            try:
+                status = client.send("status")
+                info.update(status)
+            except Exception:
+                pass
+            client.close()
+        sessions.append(info)
+    return sessions
+
+
+def daemon_status(session: str = "default") -> Optional[Dict[str, Any]]:
+    """Query a running daemon's status. Returns None if not running."""
+    client = DaemonClient(session)
     if not client.is_running():
         return None
     if not client.connect():
@@ -394,5 +458,6 @@ if __name__ == "__main__":
     parser.add_argument("--edition", default="mp")
     parser.add_argument("--graphs-dir", default=None)
     parser.add_argument("--idle-timeout", type=float, default=_IDLE_TIMEOUT)
+    parser.add_argument("--session", default="default")
     args = parser.parse_args()
-    run_daemon_server(args.stata_path, args.edition, args.graphs_dir, args.idle_timeout)
+    run_daemon_server(args.stata_path, args.edition, args.graphs_dir, args.idle_timeout, session=args.session)

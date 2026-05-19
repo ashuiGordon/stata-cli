@@ -1,6 +1,6 @@
 [project]
 name = "stata-cli"
-version = "0.4.2"
+version = "0.5.0"
 description = "Command-line interface for running Stata commands via PyStata"
 readme = "README.md"
 requires-python = ">=3.9"

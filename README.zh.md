@@ -38,7 +38,7 @@
 | **Frame 管理** | 通过 `frame` 列出 Stata frame 和当前工作 frame |
 | **帮助系统** | 浏览 Stata 帮助主题，自动将 SMCL 标记转换为纯文本 |
 | **图表导出** | 自动检测并导出图表为 PNG/SVG/PDF，保存至 `~/.stata-cli/graphs/` |
-| **守护进程** | 后台常驻进程，通过 Unix socket 实现亚秒级执行 |
+| **守护进程** | 后台常驻进程实现亚秒级执行；支持通过 `--session` 并行多会话 |
 | **输出控制** | 精简模式、JSON 输出、Token 限制管理、日志文件输出 |
 | **中断执行** | 发送 break 信号停止正在运行的命令 |
 | **Skill 知识库** | 内置 57 个 Stata 参考主题：语法、计量经济学、因果推断、社区包 |
@@ -277,12 +277,31 @@ stata-cli daemon stop        # 关闭
 |------|------|
 | `daemon start` | 启动后台守护进程 |
 | `daemon stop` | 优雅关闭 |
-| `daemon status` | 显示 PID、Stata 路径、运行时间、空闲时间 |
+| `daemon stop --all` | 关闭所有会话 |
+| `daemon status` | 显示所有运行中的会话 |
 | `daemon restart` | 先关闭再启动（重置 Stata 状态） |
 
 命令会在守护进程运行时自动路由。使用 `--no-daemon` 强制直接执行。
 
 守护进程在空闲 1 小时后自动关闭（可通过 `--idle-timeout` 配置）。
+
+### 并行会话
+
+运行多个独立 Stata 实例 — 就像打开多个 Stata 窗口：
+
+```bash
+# 启动命名会话
+stata-cli --session proj_a daemon start
+stata-cli --session proj_b daemon start
+
+# 每个会话独立拥有自己的数据、估计结果和宏
+stata-cli --session proj_a run "use project_a.dta, clear"
+stata-cli --session proj_b run "use project_b.dta, clear"
+
+# 将命令路由到指定会话
+stata-cli --session proj_a run "regress price mpg weight"
+stata-cli --session proj_b return e
+```
 
 ## 进阶用法
 
@@ -292,6 +311,7 @@ stata-cli daemon stop        # 关闭
 |------|------|--------|
 | `--stata-path PATH` | Stata 安装目录 | 自动检测 |
 | `--edition [mp\|se\|be]` | Stata 版本 | `mp` |
+| `--session NAME` | 守护进程会话名称（并行会话） | `default` |
 | `--compact` | 精简输出（去除冗余信息） | 关闭 |
 | `--json` | 结构化 JSON 输出 | 关闭 |
 | `--timeout SECONDS` | 执行超时（秒） | 600 |

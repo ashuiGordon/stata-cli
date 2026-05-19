@@ -38,7 +38,7 @@ A command-line interface for [Stata](https://www.stata.com/) via PyStata — bui
 | **Frame Management** | List Stata frames and current working frame via `frame` |
 | **Help System** | Browse Stata help topics with SMCL-to-plain-text conversion |
 | **Graph Export** | Auto-detect and export graphs as PNG/SVG/PDF to `~/.stata-cli/graphs/` |
-| **Daemon Mode** | Persistent background process for sub-second execution via Unix socket |
+| **Daemon Mode** | Persistent background process for sub-second execution; parallel sessions via `--session` |
 | **Output Control** | Compact mode, JSON output, token limit management, log file output |
 | **Interruption** | Send break signal to stop long-running commands |
 | **Skill Library** | Built-in Stata reference with 57 topics: syntax, econometrics, causal inference, packages |
@@ -277,12 +277,31 @@ stata-cli daemon stop        # Shut down
 |---------|-------------|
 | `daemon start` | Start the background daemon process |
 | `daemon stop` | Graceful shutdown |
-| `daemon status` | Show PID, Stata path, uptime, idle time |
+| `daemon stop --all` | Stop all running sessions |
+| `daemon status` | Show all running sessions (PID, uptime, idle) |
 | `daemon restart` | Stop + start (clean Stata state) |
 
 Commands auto-route through the daemon when it is running. Use `--no-daemon` to force direct execution.
 
 The daemon auto-shuts down after 1 hour of inactivity (configurable with `--idle-timeout`).
+
+### Parallel Sessions
+
+Run multiple independent Stata instances — like opening multiple Stata windows:
+
+```bash
+# Start named sessions
+stata-cli --session proj_a daemon start
+stata-cli --session proj_b daemon start
+
+# Each session has its own data, estimates, and macros
+stata-cli --session proj_a run "use project_a.dta, clear"
+stata-cli --session proj_b run "use project_b.dta, clear"
+
+# Route any command to a specific session
+stata-cli --session proj_a run "regress price mpg weight"
+stata-cli --session proj_b return e
+```
 
 ## Advanced Usage
 
@@ -292,6 +311,7 @@ The daemon auto-shuts down after 1 hour of inactivity (configurable with `--idle
 |--------|-------------|---------|
 | `--stata-path PATH` | Stata installation directory | auto-detected |
 | `--edition [mp\|se\|be]` | Stata edition | `mp` |
+| `--session NAME` | Daemon session name (for parallel sessions) | `default` |
 | `--compact` | Strip verbose output noise | off |
 | `--json` | Structured JSON output | off |
 | `--timeout SECONDS` | Execution timeout | 600 |

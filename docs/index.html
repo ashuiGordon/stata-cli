@@ -820,6 +820,13 @@ stata-cli matrix e(b)</code>
             </div>
         </div>
         <p class="perf-speedup"><strong>35x faster</strong> — daemon keeps PyStata initialized via Unix socket</p>
+        <div style="margin-top: 2rem; text-align: center;">
+            <p style="color: #666; font-size: 0.95rem;"><strong>Parallel Sessions</strong> — run multiple independent Stata instances with <code>--session</code></p>
+            <pre style="display: inline-block; text-align: left; background: #1a1a1a; color: #f0f0f0; padding: 1rem 1.5rem; border-radius: 8px; font-size: 0.85rem;"><code>stata-cli --session proj_a daemon start
+stata-cli --session proj_b daemon start
+stata-cli --session proj_a run "regress price mpg"
+stata-cli --session proj_b run "summarize income"</code></pre>
+        </div>
     </div>
 </section>
 

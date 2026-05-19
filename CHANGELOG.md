@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.5.1] - 2026-05-19
+
+### Improved
+- Updated README, README.zh, and website with parallel session documentation
+- Fixed socket leak in `_find_free_port` on Windows
+
 ## [0.5.0] - 2026-05-19
 
 ### Added

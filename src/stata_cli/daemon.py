@@ -137,12 +137,13 @@ class DaemonServer:
     @staticmethod
     def _find_free_port() -> int:
         for port in range(_DEFAULT_PORT, _DEFAULT_PORT + 200):
+            s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             try:
-                s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
                 s.bind(("127.0.0.1", port))
                 s.close()
                 return port
             except OSError:
+                s.close()
                 continue
         raise RuntimeError("No free port found")
 

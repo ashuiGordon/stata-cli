@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.5.2] - 2026-06-01
+
+### Added
+- `stata-cli config set/get/list` — persistent configuration stored in `~/.stata-cli/config.json`
+  - `stata-cli config set stata-path "/path/to/stata"` — save custom Stata installation path
+  - `stata-cli config get stata-path` — read a config value
+  - `stata-cli config list` — show all saved config
+- `detect_stata_path()` now checks config.json before platform defaults (priority: CLI flag > env var > config > defaults)
+- Added Stata 19 / StataNow 19 to default path detection (Windows, macOS, Linux)
+
 ## [0.5.1] - 2026-05-19
 
 ### Improved

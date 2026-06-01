@@ -447,6 +447,58 @@ def skill_cmd(ctx, topic, list_topics):
         click.echo(content)
 
 
+# ── Config subcommands ──────────────────────────────────────────────────
+
+@cli.group("config")
+def config_cmd():
+    """Manage stata-cli configuration (~/.stata-cli/config.json)."""
+
+
+@config_cmd.command("set")
+@click.argument("key")
+@click.argument("value")
+def config_set(key, value):
+    """Set a configuration value.
+
+    \b
+    Examples:
+      stata-cli config set stata-path "/usr/local/stata19"
+      stata-cli config set edition se
+    """
+    from .utils import set_config
+    set_config(key, value)
+    click.echo(f"{key} = {value}")
+
+
+@config_cmd.command("get")
+@click.argument("key")
+def config_get(key):
+    """Get a configuration value.
+
+    \b
+    Examples:
+      stata-cli config get stata-path
+    """
+    from .utils import get_config
+    value = get_config(key)
+    if value is None:
+        click.echo(f"{key}: (not set)")
+    else:
+        click.echo(f"{key} = {value}")
+
+
+@config_cmd.command("list")
+def config_list():
+    """Show all configuration values."""
+    from .utils import get_all_config
+    data = get_all_config()
+    if not data:
+        click.echo("No configuration set. Use 'stata-cli config set <key> <value>' to configure.")
+        return
+    for k, v in data.items():
+        click.echo(f"{k} = {v}")
+
+
 # ── Daemon subcommands ───────────────────────────────────────────────────
 
 @cli.group()

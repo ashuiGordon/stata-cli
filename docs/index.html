@@ -3,864 +3,1081 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>stata-cli — Agent-native Stata CLI for AI agents and empirical research</title>
+    <title>stata-cli — Agent-native Stata CLI for empirical research</title>
     <meta name="description" content="Let Codex, Claude Code, Cursor, and other AI coding agents run Stata, inspect datasets, retrieve econometric results as JSON, and export graphs via PyStata.">
+    <meta name="theme-color" content="#f7f6f2">
+    <link rel="canonical" href="https://ashuigordon.github.io/stata-cli/">
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="stata-cli — Agent-native Stata CLI">
+    <meta property="og:description" content="From .do file to structured result. Run Stata from any shell-capable AI agent.">
+    <meta property="og:url" content="https://ashuigordon.github.io/stata-cli/">
+    <meta property="og:image" content="https://ashuigordon.github.io/stata-cli/assets/hero-evidence.png">
+    <meta name="twitter:card" content="summary_large_image">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.7.2/css/all.min.css">
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "SoftwareApplication",
+        "name": "stata-cli",
+        "applicationCategory": "DeveloperApplication",
+        "operatingSystem": "macOS, Windows, Linux",
+        "description": "Agent-native Stata CLI for AI coding agents and empirical research.",
+        "url": "https://ashuigordon.github.io/stata-cli/",
+        "downloadUrl": "https://pypi.org/project/stata-cli/",
+        "softwareVersion": "0.5.2",
+        "license": "https://opensource.org/licenses/MIT",
+        "offers": {
+            "@type": "Offer",
+            "price": "0",
+            "priceCurrency": "USD"
+        }
+    }
+    </script>
     <style>
-        *, *::before, *::after {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
+        :root {
+            --paper: #f7f6f2;
+            --paper-bright: #fffefa;
+            --ink: #0b0b0d;
+            --muted: #5e6068;
+            --line: rgba(11, 11, 13, 0.14);
+            --line-strong: rgba(11, 11, 13, 0.3);
+            --blue: #1454e8;
+            --cyan: #08a8d6;
+            --dark: #111216;
+            --dark-muted: #a9acb5;
+            --radius-pill: 999px;
+            --radius-panel: 28px;
+            --page-pad: clamp(20px, 3.4vw, 52px);
+            --content-max: 1480px;
+            --ease: cubic-bezier(0.16, 1, 0.3, 1);
         }
 
-        :root {
-            --accent: #024ad8;
-            --accent-hover: #0238a8;
-            --ink: #1a1a1a;
-            --cloud: #f7f7f7;
-            --white: #ffffff;
-            --text: #333333;
-            --text-muted: #666666;
-            --border: #e5e5e5;
-            --radius-card: 16px;
-            --radius-btn: 4px;
-            --max-width: 1120px;
-            --section-pad: 80px;
-            --font: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-            --mono: 'JetBrains Mono', 'SF Mono', 'Fira Code', monospace;
+        * {
+            box-sizing: border-box;
         }
 
         html {
             scroll-behavior: smooth;
+            background: var(--paper);
         }
 
         body {
-            font-family: var(--font);
-            color: var(--text);
-            line-height: 1.6;
-            background: var(--white);
+            margin: 0;
+            color: var(--ink);
+            background: var(--paper);
+            font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            font-size: 16px;
+            line-height: 1.5;
             -webkit-font-smoothing: antialiased;
+            text-rendering: optimizeLegibility;
         }
 
-        .container {
-            max-width: var(--max-width);
+        a {
+            color: inherit;
+            text-decoration: none;
+        }
+
+        button {
+            color: inherit;
+            font: inherit;
+        }
+
+        :focus-visible {
+            outline: 3px solid rgba(20, 84, 232, 0.34);
+            outline-offset: 3px;
+        }
+
+        .shell {
+            width: min(100%, var(--content-max));
             margin: 0 auto;
-            padding: 0 24px;
+            padding-inline: var(--page-pad);
         }
 
-        /* Nav */
-        nav {
-            position: sticky;
-            top: 0;
-            z-index: 100;
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(10px);
-            border-bottom: 1px solid var(--border);
-            padding: 16px 0;
-        }
-
-        nav .container {
+        .site-header {
+            position: fixed;
+            inset: 0 0 auto;
+            z-index: 50;
             display: flex;
             align-items: center;
             justify-content: space-between;
+            gap: 18px;
+            height: 84px;
+            padding: 16px var(--page-pad);
+            background: rgba(247, 246, 242, 0.92);
+            border-bottom: 1px solid transparent;
+            backdrop-filter: blur(18px);
+            transition: border-color 220ms ease, background-color 220ms ease;
         }
 
-        .nav-logo {
-            font-weight: 700;
-            font-size: 1.1rem;
-            color: var(--ink);
-            text-decoration: none;
+        .site-header.scrolled {
+            border-bottom-color: var(--line);
+            background: rgba(247, 246, 242, 0.97);
         }
 
-        .nav-links {
+        .header-left,
+        .header-right,
+        .header-tags,
+        .hero-actions,
+        .hero-topics,
+        .section-kicker,
+        .install-tabs,
+        .footer-links {
             display: flex;
             align-items: center;
-            gap: 24px;
         }
 
-        .nav-links a {
-            color: var(--text-muted);
-            text-decoration: none;
-            font-size: 0.9rem;
-            font-weight: 500;
-            transition: color 0.2s;
+        .header-left {
+            gap: 18px;
+            min-width: 0;
         }
 
-        .nav-links a:hover {
-            color: var(--ink);
+        .header-right {
+            gap: 10px;
         }
 
-        .nav-links a.btn-primary {
-            color: var(--white);
+        .brand {
+            font-size: 22px;
+            font-weight: 700;
+            letter-spacing: -0.04em;
+            white-space: nowrap;
         }
 
-        .btn {
+        .menu-button,
+        .header-cta,
+        .header-tags,
+        .topic-pill,
+        .install-tab,
+        .copy-button {
+            border-radius: var(--radius-pill);
+        }
+
+        .menu-button {
             display: inline-flex;
             align-items: center;
-            gap: 8px;
-            padding: 10px 20px;
-            border-radius: var(--radius-btn);
-            font-size: 0.9rem;
-            font-weight: 600;
-            text-decoration: none;
-            transition: all 0.2s;
+            gap: 10px;
+            min-height: 40px;
+            padding: 7px 15px 7px 8px;
+            background: var(--paper-bright);
+            border: 1px solid var(--line);
             cursor: pointer;
-            border: none;
-            font-family: var(--font);
+            transition: transform 180ms ease, border-color 180ms ease;
         }
 
-        .btn-primary {
-            background: var(--accent);
-            color: var(--white);
+        .menu-button:hover {
+            transform: translateY(-1px);
+            border-color: var(--line-strong);
         }
 
-        .btn-primary:hover {
-            background: var(--accent-hover);
-        }
-
-        .btn-secondary {
-            background: var(--white);
-            color: var(--ink);
-            border: 1px solid var(--border);
-        }
-
-        .btn-secondary:hover {
-            border-color: var(--ink);
-        }
-
-        .btn-ghost {
-            background: transparent;
-            color: rgba(255, 255, 255, 0.8);
-            border: 1px solid rgba(255, 255, 255, 0.3);
-        }
-
-        .btn-ghost:hover {
-            background: rgba(255, 255, 255, 0.1);
-            color: var(--white);
-            border-color: rgba(255, 255, 255, 0.6);
-        }
-
-        /* Hero */
-        .hero {
-            background: var(--ink);
-            padding: 100px 0 80px;
-            overflow: hidden;
-        }
-
-        .hero-content {
+        .menu-icon {
             display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 60px;
+            width: 26px;
+            height: 26px;
+            place-items: center;
+            color: white;
+            background: var(--ink);
+            border-radius: 50%;
+            font-size: 11px;
+        }
+
+        .menu-label {
+            font-size: 12px;
+            font-weight: 600;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+        }
+
+        .header-tags {
+            gap: 12px;
+            padding: 10px 16px;
+            color: var(--muted);
+            background: rgba(11, 11, 13, 0.045);
+            font-size: 12px;
+            white-space: nowrap;
+        }
+
+        .header-tags span + span {
+            padding-left: 12px;
+            border-left: 1px solid var(--line);
+        }
+
+        .header-cta {
+            display: inline-flex;
             align-items: center;
+            gap: 9px;
+            min-height: 42px;
+            padding: 0 18px;
+            color: white;
+            background: var(--blue);
+            font-size: 13px;
+            font-weight: 600;
+            transition: transform 180ms ease, background-color 180ms ease;
         }
 
-        .hero-text h1 {
-            font-size: 2.8rem;
-            font-weight: 800;
-            color: var(--white);
-            line-height: 1.15;
-            margin-bottom: 16px;
+        .header-cta:hover {
+            transform: translateY(-1px);
+            background: #0b43c7;
         }
 
-        .hero-text h1 span {
-            color: var(--accent);
+        .site-menu {
+            position: fixed;
+            top: 70px;
+            left: var(--page-pad);
+            z-index: 60;
+            display: grid;
+            gap: 4px;
+            width: min(360px, calc(100vw - 40px));
+            padding: 14px;
+            background: var(--paper-bright);
+            border: 1px solid var(--line);
+            border-radius: 22px;
+            box-shadow: 0 24px 70px rgba(11, 11, 13, 0.16);
+            opacity: 0;
+            pointer-events: none;
+            transform: translateY(-8px) scale(0.98);
+            transform-origin: top left;
+            transition: opacity 180ms ease, transform 180ms var(--ease);
         }
 
-        .hero-text .subtitle {
-            font-size: 1.1rem;
-            color: rgba(255, 255, 255, 0.7);
-            margin-bottom: 32px;
-            line-height: 1.7;
+        .site-menu.open {
+            opacity: 1;
+            pointer-events: auto;
+            transform: translateY(0) scale(1);
         }
 
-        .hero-buttons {
+        .site-menu a {
             display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 13px 14px;
+            border-radius: 13px;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .site-menu a:hover {
+            background: rgba(11, 11, 13, 0.05);
+        }
+
+        .hero {
+            position: relative;
+            min-height: max(760px, 100svh);
+            overflow: hidden;
+            border-bottom: 1px solid var(--line);
+        }
+
+        .hero-art {
+            position: absolute;
+            top: clamp(56px, 5.5vh, 78px);
+            right: clamp(-32px, -1.5vw, -14px);
+            width: min(74vw, 1040px);
+            animation: art-in 1.5s var(--ease) both;
+        }
+
+        .hero-art img {
+            display: block;
+            width: 100%;
+            height: auto;
+        }
+
+        .hero-copy {
+            position: absolute;
+            left: var(--page-pad);
+            bottom: clamp(86px, 14vh, 150px);
+            z-index: 2;
+            width: min(760px, calc(100vw - (var(--page-pad) * 2)));
+            animation: copy-in 1s 320ms var(--ease) both;
+        }
+
+        .hero-eyebrow,
+        .section-kicker {
+            display: flex;
+            align-items: center;
+            gap: 9px;
+            color: var(--blue);
+            font-size: 14px;
+            font-weight: 500;
+            letter-spacing: -0.01em;
+        }
+
+        .hero-eyebrow i {
+            font-size: 8px;
+        }
+
+        .hero-title {
+            max-width: 650px;
+            margin: 14px 0 24px;
+            font-size: clamp(72px, 8vw, 118px);
+            font-weight: 300;
+            letter-spacing: -0.075em;
+            line-height: 0.86;
+        }
+
+        .hero-actions {
             gap: 12px;
             flex-wrap: wrap;
         }
 
-        .hero-terminal {
-            background: #0d0d0d;
-            border-radius: var(--radius-card);
-            padding: 24px;
-            border: 1px solid #333;
-            font-family: var(--mono);
-            font-size: 0.85rem;
-            line-height: 1.8;
-            color: #e0e0e0;
-            overflow-x: auto;
+        .button {
+            display: inline-flex;
+            min-height: 54px;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            padding: 0 24px;
+            border: 1px solid var(--line-strong);
+            border-radius: var(--radius-pill);
+            font-size: 14px;
+            font-weight: 600;
+            transition: transform 180ms ease, background-color 180ms ease, color 180ms ease;
         }
 
-        .hero-terminal .prompt {
-            color: #7ec699;
-        }
-
-        .hero-terminal .cmd {
-            color: #f8f8f2;
-        }
-
-        .hero-terminal .output {
-            color: #999;
-        }
-
-        .hero-terminal .highlight {
-            color: #79b8ff;
-        }
-
-        /* Badges */
-        .badges {
-            display: flex;
-            gap: 8px;
-            margin-bottom: 24px;
-            flex-wrap: wrap;
-        }
-
-        .badge {
-            display: inline-block;
-            padding: 4px 10px;
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 20px;
-            font-size: 0.75rem;
-            color: rgba(255, 255, 255, 0.8);
-            font-weight: 500;
-        }
-
-        /* Features */
-        .features {
-            padding: var(--section-pad) 0;
-        }
-
-        .section-header {
-            text-align: center;
-            margin-bottom: 48px;
-        }
-
-        .section-header h2 {
-            font-size: 2rem;
-            font-weight: 700;
-            color: var(--ink);
-            margin-bottom: 12px;
-        }
-
-        .section-header p {
-            color: var(--text-muted);
-            font-size: 1.05rem;
-            max-width: 600px;
-            margin: 0 auto;
-        }
-
-        .features-grid {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 24px;
-        }
-
-        .feature-card {
-            background: var(--white);
-            border: 1px solid var(--border);
-            border-radius: var(--radius-card);
-            padding: 32px 28px;
-            transition: box-shadow 0.2s, transform 0.2s;
-        }
-
-        .feature-card:hover {
-            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
+        .button:hover {
             transform: translateY(-2px);
         }
 
-        .feature-icon {
-            font-size: 1.8rem;
-            margin-bottom: 16px;
+        .button-primary {
+            color: white;
+            background: var(--blue);
+            border-color: var(--blue);
         }
 
-        .feature-card h3 {
-            font-size: 1.05rem;
-            font-weight: 600;
-            color: var(--ink);
+        .button-primary:hover {
+            background: #0b43c7;
+        }
+
+        .button-secondary {
+            background: rgba(255, 254, 250, 0.78);
+        }
+
+        .hero-topics {
+            position: absolute;
+            right: var(--page-pad);
+            bottom: clamp(88px, 14vh, 150px);
+            z-index: 2;
+            gap: 8px;
+            animation: copy-in 1s 520ms var(--ease) both;
+        }
+
+        .topic-pill {
+            padding: 9px 14px;
+            color: var(--muted);
+            background: rgba(255, 254, 250, 0.76);
+            border: 1px solid var(--line);
+            font-size: 12px;
+            backdrop-filter: blur(12px);
+        }
+
+        .proof-strip {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            border-bottom: 1px solid var(--line);
+        }
+
+        .proof-item {
+            min-height: 158px;
+            padding: 34px var(--page-pad);
+            border-right: 1px solid var(--line);
+        }
+
+        .proof-item:last-child {
+            border-right: 0;
+        }
+
+        .proof-value {
+            display: block;
             margin-bottom: 8px;
+            font-size: clamp(28px, 3.2vw, 48px);
+            font-weight: 300;
+            letter-spacing: -0.055em;
         }
 
-        .feature-card p {
-            font-size: 0.9rem;
-            color: var(--text-muted);
+        .proof-label {
+            color: var(--muted);
+            font-size: 13px;
+        }
+
+        .section {
+            padding: clamp(96px, 12vw, 180px) 0;
+            border-bottom: 1px solid var(--line);
+        }
+
+        .section-heading {
+            margin: 18px 0 0;
+            font-size: clamp(52px, 7.2vw, 112px);
+            font-weight: 300;
+            letter-spacing: -0.07em;
+            line-height: 0.92;
+        }
+
+        .workflow-grid {
+            display: grid;
+            grid-template-columns: minmax(0, 0.9fr) minmax(420px, 1.1fr);
+            align-items: start;
+            gap: clamp(60px, 10vw, 160px);
+        }
+
+        .workflow-intro {
+            position: sticky;
+            top: 130px;
+        }
+
+        .workflow-intro p {
+            max-width: 540px;
+            margin: 30px 0 0;
+            color: var(--muted);
+            font-size: 18px;
+            line-height: 1.65;
+        }
+
+        .workflow-steps {
+            display: grid;
+            border-top: 1px solid var(--line);
+        }
+
+        .workflow-step {
+            display: grid;
+            grid-template-columns: 64px 1fr;
+            gap: 22px;
+            padding: 34px 0 38px;
+            border-bottom: 1px solid var(--line);
+        }
+
+        .step-number {
+            color: var(--blue);
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        .workflow-step h3 {
+            margin: 0 0 10px;
+            font-size: 27px;
+            font-weight: 500;
+            letter-spacing: -0.04em;
+        }
+
+        .workflow-step p {
+            margin: 0;
+            color: var(--muted);
+            line-height: 1.7;
+        }
+
+        .capabilities {
+            color: white;
+            background: var(--dark);
+        }
+
+        .capabilities .section-kicker {
+            color: #63c6e5;
+        }
+
+        .capabilities .section-heading {
+            max-width: 980px;
+        }
+
+        .capability-list {
+            display: grid;
+            margin-top: 70px;
+            border-top: 1px solid rgba(255, 255, 255, 0.16);
+        }
+
+        .capability-row {
+            display: grid;
+            grid-template-columns: 1.2fr 1.5fr 48px;
+            align-items: center;
+            gap: 30px;
+            min-height: 108px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.16);
+        }
+
+        .capability-row h3 {
+            margin: 0;
+            font-size: clamp(24px, 3vw, 42px);
+            font-weight: 300;
+            letter-spacing: -0.045em;
+        }
+
+        .capability-row p {
+            margin: 0;
+            color: var(--dark-muted);
+            font-size: 14px;
             line-height: 1.6;
         }
 
-        /* Quick Start */
-        .quickstart {
-            background: var(--cloud);
-            padding: var(--section-pad) 0;
+        .capability-row i {
+            color: #63c6e5;
+            text-align: right;
         }
 
-        .quickstart-grid {
+        .quickstart-layout {
             display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 32px;
+            grid-template-columns: minmax(0, 0.85fr) minmax(520px, 1.15fr);
+            align-items: end;
+            gap: clamp(56px, 9vw, 130px);
         }
 
-        .quickstart-card {
-            background: var(--white);
-            border-radius: var(--radius-card);
-            padding: 32px;
-            border: 1px solid var(--border);
+        .quickstart-copy p {
+            max-width: 520px;
+            margin: 26px 0 0;
+            color: var(--muted);
+            font-size: 18px;
+            line-height: 1.65;
         }
 
-        .quickstart-card h3 {
-            font-size: 1.1rem;
-            font-weight: 600;
-            margin-bottom: 20px;
-            color: var(--ink);
+        .install-panel {
+            overflow: hidden;
+            color: white;
+            background: #111216;
+            border-radius: var(--radius-panel);
+            box-shadow: 0 34px 90px rgba(11, 11, 13, 0.16);
         }
 
-        .code-block {
-            position: relative;
-            background: var(--ink);
-            border-radius: 8px;
-            padding: 20px;
-            margin: 12px 0;
-            overflow-x: auto;
-        }
-
-        .code-block code {
-            font-family: var(--mono);
-            font-size: 0.82rem;
-            line-height: 1.7;
-            color: #e0e0e0;
-            white-space: pre;
-        }
-
-        .code-block .kw { color: #79b8ff; }
-        .code-block .str { color: #9ecbff; }
-        .code-block .comment { color: #6a737d; }
-
-        .copy-btn {
-            position: absolute;
-            top: 10px;
-            right: 10px;
-            background: rgba(255, 255, 255, 0.1);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            border-radius: 4px;
-            color: rgba(255, 255, 255, 0.6);
-            padding: 4px 8px;
-            font-size: 0.7rem;
-            cursor: pointer;
-            font-family: var(--font);
-            transition: all 0.2s;
-        }
-
-        .copy-btn:hover {
-            background: rgba(255, 255, 255, 0.2);
-            color: var(--white);
-        }
-
-        /* Commands */
-        .commands {
-            padding: var(--section-pad) 0;
-        }
-
-        .commands-table {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: 0.9rem;
-        }
-
-        .commands-table th {
-            text-align: left;
-            padding: 12px 16px;
-            background: var(--cloud);
-            font-weight: 600;
-            color: var(--ink);
-            border-bottom: 2px solid var(--border);
-        }
-
-        .commands-table td {
-            padding: 14px 16px;
-            border-bottom: 1px solid var(--border);
-            vertical-align: top;
-        }
-
-        .commands-table code {
-            font-family: var(--mono);
-            font-size: 0.82rem;
-            background: var(--cloud);
-            padding: 2px 6px;
-            border-radius: 3px;
-            color: var(--accent);
-            font-weight: 500;
-        }
-
-        .commands-table tr:hover {
-            background: var(--cloud);
-        }
-
-        /* Performance */
-        .performance {
-            background: var(--cloud);
-            padding: var(--section-pad) 0;
-        }
-
-        .perf-comparison {
-            display: grid;
-            grid-template-columns: 1fr auto 1fr;
-            gap: 40px;
-            align-items: center;
-            max-width: 800px;
-            margin: 0 auto;
-        }
-
-        .perf-box {
-            text-align: center;
-            padding: 40px 24px;
-            background: var(--white);
-            border-radius: var(--radius-card);
-            border: 1px solid var(--border);
-        }
-
-        .perf-box .time {
-            font-size: 2.4rem;
-            font-weight: 800;
-            margin-bottom: 8px;
-        }
-
-        .perf-box.before .time {
-            color: var(--text-muted);
-        }
-
-        .perf-box.after .time {
-            color: var(--accent);
-        }
-
-        .perf-box .label {
-            font-size: 0.9rem;
-            color: var(--text-muted);
-        }
-
-        .perf-arrow {
-            font-size: 2rem;
-            color: var(--accent);
-            font-weight: 700;
-        }
-
-        .perf-speedup {
-            text-align: center;
-            margin-top: 24px;
-            font-size: 1.1rem;
-            color: var(--text-muted);
-        }
-
-        .perf-speedup strong {
-            color: var(--accent);
-            font-weight: 700;
-        }
-
-        /* Footer */
-        footer {
-            background: var(--ink);
-            padding: 60px 0 40px;
-            color: rgba(255, 255, 255, 0.7);
-        }
-
-        .footer-content {
+        .install-panel-header {
             display: flex;
+            align-items: center;
             justify-content: space-between;
-            align-items: flex-start;
-            margin-bottom: 40px;
+            gap: 20px;
+            padding: 18px 20px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.12);
         }
 
-        .footer-brand h3 {
-            font-size: 1.1rem;
-            font-weight: 700;
-            color: var(--white);
-            margin-bottom: 8px;
+        .install-tabs {
+            gap: 6px;
         }
 
-        .footer-brand p {
-            font-size: 0.85rem;
-            max-width: 300px;
+        .install-tab {
+            padding: 8px 12px;
+            color: var(--dark-muted);
+            background: transparent;
+            border: 0;
+            cursor: pointer;
+            font-size: 12px;
+        }
+
+        .install-tab.active {
+            color: white;
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .copy-button {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 12px;
+            color: white;
+            background: transparent;
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            cursor: pointer;
+            font-size: 12px;
+        }
+
+        .install-code {
+            min-height: 240px;
+            margin: 0;
+            padding: 34px;
+            overflow-x: auto;
+            color: #e7e9ee;
+            font: 14px/1.85 "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+            white-space: pre-wrap;
+        }
+
+        .install-code .prompt {
+            color: #63c6e5;
+        }
+
+        .install-code .success {
+            color: #75d48a;
+        }
+
+        .site-footer {
+            padding: 36px 0 42px;
+        }
+
+        .footer-layout {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 30px;
+        }
+
+        .footer-meta {
+            display: grid;
+            gap: 5px;
+        }
+
+        .footer-meta strong {
+            font-size: 18px;
+            letter-spacing: -0.035em;
+        }
+
+        .footer-meta span {
+            color: var(--muted);
+            font-size: 12px;
         }
 
         .footer-links {
-            display: flex;
-            gap: 40px;
+            gap: 18px;
+            flex-wrap: wrap;
         }
 
         .footer-links a {
-            color: rgba(255, 255, 255, 0.7);
-            text-decoration: none;
-            font-size: 0.9rem;
-            transition: color 0.2s;
+            color: var(--muted);
+            font-size: 13px;
         }
 
         .footer-links a:hover {
-            color: var(--white);
+            color: var(--ink);
         }
 
-        .footer-bottom {
-            border-top: 1px solid rgba(255, 255, 255, 0.1);
-            padding-top: 24px;
-            font-size: 0.8rem;
-            color: rgba(255, 255, 255, 0.4);
-        }
-
-        /* Responsive */
-        @media (max-width: 768px) {
-            .hero-content {
-                grid-template-columns: 1fr;
-                gap: 40px;
+        @keyframes art-in {
+            from {
+                opacity: 0;
+                transform: translateY(-20px) scale(1.025);
             }
-
-            .hero-text h1 {
-                font-size: 2rem;
-            }
-
-            .features-grid {
-                grid-template-columns: 1fr;
-            }
-
-            .quickstart-grid {
-                grid-template-columns: 1fr;
-            }
-
-            .perf-comparison {
-                grid-template-columns: 1fr;
-                gap: 16px;
-            }
-
-            .perf-arrow {
-                transform: rotate(90deg);
-            }
-
-            .commands-table {
-                font-size: 0.8rem;
-            }
-
-            .footer-content {
-                flex-direction: column;
-                gap: 32px;
-            }
-
-            .nav-links {
-                gap: 16px;
-            }
-
-            :root {
-                --section-pad: 60px;
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
             }
         }
 
-        @media (max-width: 480px) {
-            .hero-text h1 {
-                font-size: 1.7rem;
+        @keyframes copy-in {
+            from {
+                opacity: 0;
+                transform: translateY(24px);
             }
-
-            .hero-buttons {
-                flex-direction: column;
+            to {
+                opacity: 1;
+                transform: translateY(0);
             }
+        }
 
-            .nav-links a:not(.btn) {
+        @media (max-width: 1100px) {
+            .header-tags,
+            .hero-topics {
                 display: none;
+            }
+
+            .hero-art {
+                top: 92px;
+                right: -18vw;
+                width: 88vw;
+            }
+
+            .hero-copy {
+                width: min(680px, calc(100vw - (var(--page-pad) * 2)));
+            }
+
+            .workflow-grid,
+            .quickstart-layout {
+                grid-template-columns: 1fr;
+            }
+
+            .workflow-intro {
+                position: static;
+            }
+
+            .quickstart-layout {
+                align-items: start;
+            }
+
+            .install-panel {
+                max-width: 760px;
+            }
+        }
+
+        @media (max-width: 760px) {
+            .site-header {
+                height: 70px;
+                padding-block: 12px;
+            }
+
+            .brand {
+                font-size: 19px;
+            }
+
+            .menu-label,
+            .header-cta span {
+                display: none;
+            }
+
+            .menu-button {
+                padding: 6px;
+                border: 0;
+                background: transparent;
+            }
+
+            .header-cta {
+                width: 40px;
+                min-height: 40px;
+                justify-content: center;
+                padding: 0;
+                border-radius: 50%;
+            }
+
+            .site-menu {
+                top: 62px;
+            }
+
+            .hero {
+                min-height: 780px;
+            }
+
+            .hero-art {
+                top: 84px;
+                right: -32vw;
+                width: 142vw;
+            }
+
+            .hero-copy {
+                bottom: 34px;
+            }
+
+            .hero-title {
+                margin-top: 10px;
+                font-size: clamp(60px, 19vw, 88px);
+                line-height: 0.86;
+            }
+
+            .button {
+                min-height: 50px;
+                padding-inline: 18px;
+            }
+
+            .proof-strip {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .proof-item {
+                min-height: 130px;
+                padding-block: 26px;
+                border-bottom: 1px solid var(--line);
+            }
+
+            .proof-item:nth-child(2) {
+                border-right: 0;
+            }
+
+            .proof-item:nth-child(n + 3) {
+                border-bottom: 0;
+            }
+
+            .section {
+                padding-block: 88px;
+            }
+
+            .section-heading {
+                font-size: clamp(46px, 15vw, 72px);
+            }
+
+            .workflow-step {
+                grid-template-columns: 44px 1fr;
+                gap: 14px;
+            }
+
+            .capability-list {
+                margin-top: 48px;
+            }
+
+            .capability-row {
+                grid-template-columns: 1fr 28px;
+                gap: 18px;
+                padding: 26px 0;
+            }
+
+            .capability-row p {
+                grid-column: 1 / -1;
+                grid-row: 2;
+            }
+
+            .quickstart-layout {
+                gap: 46px;
+            }
+
+            .install-panel-header {
+                align-items: flex-start;
+                flex-direction: column;
+            }
+
+            .install-code {
+                min-height: 280px;
+                padding: 24px 20px;
+                font-size: 12px;
+            }
+
+            .footer-layout {
+                align-items: flex-start;
+                flex-direction: column;
+            }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            html {
+                scroll-behavior: auto;
+            }
+
+            *,
+            *::before,
+            *::after {
+                animation-duration: 0.01ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: 0.01ms !important;
             }
         }
     </style>
 </head>
 <body>
-
-<!-- Nav -->
-<nav>
-    <div class="container">
-        <a href="#" class="nav-logo">stata-cli</a>
-        <div class="nav-links">
-            <a href="#features">Features</a>
-            <a href="#quickstart">Quick Start</a>
-            <a href="#commands">Commands</a>
-            <a href="https://github.com/ashuiGordon/stata-cli" target="_blank">GitHub</a>
-            <a href="#quickstart" class="btn btn-primary">Install</a>
+    <header class="site-header" id="site-header">
+        <div class="header-left">
+            <a class="brand" href="#top" aria-label="stata-cli home">stata-cli</a>
+            <button class="menu-button" id="menu-button" type="button" aria-label="Open navigation" aria-expanded="false" aria-controls="site-menu">
+                <span class="menu-icon" aria-hidden="true"><i class="fa-solid fa-bars"></i></span>
+                <span class="menu-label">Explore</span>
+            </button>
+            <div class="header-tags" aria-label="Product categories">
+                <span>Econometrics</span>
+                <span>AI workflow</span>
+            </div>
         </div>
-    </div>
-</nav>
+        <div class="header-right">
+            <a class="header-cta" href="https://github.com/ashuiGordon/stata-cli#readme" target="_blank" rel="noopener" aria-label="Read the documentation">
+                <span>Read the docs</span>
+                <i class="fa-solid fa-arrow-up-right-from-square" aria-hidden="true"></i>
+            </a>
+        </div>
+    </header>
 
-<!-- Hero -->
-<section class="hero">
-    <div class="container">
-        <div class="hero-content">
-            <div class="hero-text">
-                <div class="badges">
-                    <span class="badge">v0.5.2</span>
-                    <span class="badge">MIT License</span>
-                    <span class="badge">Python 3.9+</span>
+    <nav class="site-menu" id="site-menu" aria-label="Primary navigation">
+        <a href="#workflow"><span>How it works</span><i class="fa-solid fa-arrow-right" aria-hidden="true"></i></a>
+        <a href="#capabilities"><span>Capabilities</span><i class="fa-solid fa-arrow-right" aria-hidden="true"></i></a>
+        <a href="#quickstart"><span>Quick start</span><i class="fa-solid fa-arrow-right" aria-hidden="true"></i></a>
+        <a href="https://github.com/ashuiGordon/stata-cli" target="_blank" rel="noopener"><span>GitHub repository</span><i class="fa-brands fa-github" aria-hidden="true"></i></a>
+    </nav>
+
+    <main id="top">
+        <section class="hero" aria-labelledby="hero-title">
+            <div class="hero-art" aria-hidden="true">
+                <img src="assets/hero-evidence.png" alt="" width="1444" height="1089">
+            </div>
+            <div class="hero-copy">
+                <div class="hero-eyebrow">
+                    <i class="fa-solid fa-circle" aria-hidden="true"></i>
+                    <span>From .do file to structured result</span>
                 </div>
-                <h1>The Agent-Native <span>Stata CLI</span></h1>
-                <p class="subtitle">Let Codex, Claude Code, Cursor, and other AI coding agents run Stata, inspect datasets, retrieve econometric results as JSON, and export graphs via PyStata.</p>
-                <div class="hero-buttons">
-                    <a href="#quickstart" class="btn btn-primary">pip install stata-cli</a>
-                    <a href="https://github.com/ashuiGordon/stata-cli" class="btn btn-ghost" target="_blank">
-                        <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
-                        GitHub
+                <h1 class="hero-title" id="hero-title">One CLI.<br>Full Stata.</h1>
+                <div class="hero-actions">
+                    <a class="button button-primary" href="#quickstart">
+                        <span>Start in 30 seconds</span>
+                        <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
+                    </a>
+                    <a class="button button-secondary" href="https://github.com/ashuiGordon/stata-cli" target="_blank" rel="noopener">
+                        <span>Open GitHub</span>
+                        <i class="fa-brands fa-github" aria-hidden="true"></i>
                     </a>
                 </div>
             </div>
-            <div class="hero-terminal">
-                <div><span class="prompt">$</span> <span class="cmd">stata-cli daemon start</span></div>
-                <div><span class="output">Daemon started (PID 42891)</span></div>
-                <div style="margin-top: 12px"><span class="prompt">$</span> <span class="cmd">stata-cli run "sysuse auto, clear</span></div>
-                <div><span class="cmd">regress price mpg weight"</span></div>
-                <div style="margin-top: 8px"><span class="output">      Source |       SS           df       MS</span></div>
-                <div><span class="output">  -----------+------------------------------</span></div>
-                <div><span class="output">       Model |  <span class="highlight">518727240</span>         2  259363620</span></div>
-                <div><span class="output">    Residual |  117320986        71  1652408.3</span></div>
-                <div style="margin-top: 8px"><span class="output">       price | Coefficient  Std. err.</span></div>
-                <div><span class="output">  -----------+-------------------------</span></div>
-                <div><span class="output">         mpg |  <span class="highlight">-49.51222</span>   86.15604</span></div>
-                <div><span class="output">      weight |   <span class="highlight">1.746559</span>   .6413538</span></div>
-                <div style="margin-top: 12px"><span class="output" style="color: #6a6;">Execution time: 0.085s</span></div>
+            <div class="hero-topics" aria-label="Supported workflows">
+                <span class="topic-pill">Panel data</span>
+                <span class="topic-pill">Causal inference</span>
+                <span class="topic-pill">Graphs</span>
             </div>
-        </div>
-    </div>
-</section>
+        </section>
 
-<!-- Features -->
-<section class="features" id="features">
-    <div class="container">
-        <div class="section-header">
-            <h2>Built for Modern Workflows</h2>
-            <p>Everything you need to run Stata from the terminal or integrate with AI agents.</p>
-        </div>
-        <div class="features-grid">
-            <div class="feature-card">
-                <div class="feature-icon">&#x1F916;</div>
-                <h3>Agent-Native Design</h3>
-                <p>Structured JSON output, exit codes, and SKILL.md definition. AI Agents operate Stata with zero extra setup.</p>
+        <section class="proof-strip" aria-label="Product proof points">
+            <div class="proof-item">
+                <strong class="proof-value">85 ms</strong>
+                <span class="proof-label">Warm daemon execution</span>
             </div>
-            <div class="feature-card">
-                <div class="feature-icon">&#x26A1;</div>
-                <h3>Sub-Second Execution</h3>
-                <p>Daemon mode keeps PyStata alive in background. Startup drops from ~2-3s to ~85ms — a 35x speedup.</p>
+            <div class="proof-item">
+                <strong class="proof-value">JSON</strong>
+                <span class="proof-label">Agent-readable results</span>
             </div>
-            <div class="feature-card">
-                <div class="feature-icon">&#x1F3AF;</div>
-                <h3>Full Coverage</h3>
-                <p>Run code, .do files, view data, browse help, export graphs, inspect matrices — one tool for everything.</p>
+            <div class="proof-item">
+                <strong class="proof-value">57</strong>
+                <span class="proof-label">Built-in Stata topics</span>
             </div>
-            <div class="feature-card">
-                <div class="feature-icon">&#x1F4CA;</div>
-                <h3>AI-Friendly Output</h3>
-                <p>Compact mode, token limit management, JSON responses, and graph auto-naming — optimized for tool-use.</p>
+            <div class="proof-item">
+                <strong class="proof-value">17–19</strong>
+                <span class="proof-label">Stata versions supported</span>
             </div>
-            <div class="feature-card">
-                <div class="feature-icon">&#x1F513;</div>
-                <h3>Open Source</h3>
-                <p>MIT license. No barriers. pip install and you're running Stata from the command line in seconds.</p>
-            </div>
-            <div class="feature-card">
-                <div class="feature-icon">&#x1F680;</div>
-                <h3>2-Step Setup</h3>
-                <p>Auto-detects your Stata installation. From install to first command in under 30 seconds.</p>
-            </div>
-        </div>
-    </div>
-</section>
+        </section>
 
-<!-- Quick Start -->
-<section class="quickstart" id="quickstart">
-    <div class="container">
-        <div class="section-header">
-            <h2>Quick Start</h2>
-            <p>Up and running in seconds — for humans and AI agents alike.</p>
-        </div>
-        <div class="quickstart-grid">
-            <div class="quickstart-card">
-                <h3>&#x1F9D1;&#x200D;&#x1F4BB; Human Users</h3>
-                <div class="code-block">
-                    <button class="copy-btn" onclick="copyCode(this)">Copy</button>
-                    <code><span class="comment"># Install</span>
-pip install stata-cli
-
-<span class="comment"># Verify Stata is detected</span>
-stata-cli detect
-
-<span class="comment"># Run your first command</span>
-stata-cli run <span class="str">"display 1+1"</span>
-
-<span class="comment"># Start daemon for 35x faster execution</span>
-stata-cli daemon start
-stata-cli run <span class="str">"sysuse auto, clear"</span></code>
+        <section class="section" id="workflow">
+            <div class="shell workflow-grid">
+                <div class="workflow-intro">
+                    <div class="section-kicker">
+                        <i class="fa-solid fa-terminal" aria-hidden="true"></i>
+                        <span>Agent-native by design</span>
+                    </div>
+                    <h2 class="section-heading">Prompt in.<br>Evidence out.</h2>
+                    <p>Give any shell-capable agent a real Stata runtime. Keep your datasets, estimation commands, stored results, matrices, and graphs in one persistent session.</p>
+                </div>
+                <div class="workflow-steps">
+                    <article class="workflow-step">
+                        <span class="step-number">01</span>
+                        <div>
+                            <h3>Connect to the Stata you already own</h3>
+                            <p>stata-cli detects Stata and PyStata on macOS, Windows, and Linux. No remote data upload and no replacement statistics engine.</p>
+                        </div>
+                    </article>
+                    <article class="workflow-step">
+                        <span class="step-number">02</span>
+                        <div>
+                            <h3>Run code without losing context</h3>
+                            <p>A persistent daemon keeps datasets, macros, estimates, and frames alive across calls, with named sessions for parallel projects.</p>
+                        </div>
+                    </article>
+                    <article class="workflow-step">
+                        <span class="step-number">03</span>
+                        <div>
+                            <h3>Return structured empirical results</h3>
+                            <p>Agents can inspect variables, r()/e()/s(), matrices, labels, filtered rows, help files, and exported graphs instead of scraping terminal noise.</p>
+                        </div>
+                    </article>
                 </div>
             </div>
-            <div class="quickstart-card">
-                <h3>&#x1F916; AI Agents</h3>
-                <div class="code-block">
-                    <button class="copy-btn" onclick="copyCode(this)">Copy</button>
-                    <code><span class="comment"># Install & start daemon</span>
-pip install stata-cli
-stata-cli daemon start
+        </section>
 
-<span class="comment"># Run analysis</span>
-stata-cli run <span class="str">"sysuse auto, clear
-regress price mpg weight"</span>
-
-<span class="comment"># Get structured results</span>
-stata-cli <span class="kw">--json</span> run <span class="str">"summarize price"</span>
-stata-cli return e
-stata-cli matrix e(b)</code>
+        <section class="section capabilities" id="capabilities">
+            <div class="shell">
+                <div class="section-kicker">
+                    <i class="fa-solid fa-bolt" aria-hidden="true"></i>
+                    <span>One binary, full workflow</span>
+                </div>
+                <h2 class="section-heading">Everything an agent needs to work empirically.</h2>
+                <div class="capability-list">
+                    <article class="capability-row">
+                        <h3>Execute</h3>
+                        <p>Inline Stata, multi-line analysis, stdin, and complete .do files with reliable exit codes.</p>
+                        <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
+                    </article>
+                    <article class="capability-row">
+                        <h3>Inspect</h3>
+                        <p>Datasets, variable metadata, frames, labels, macros, matrices, and stored estimation results.</p>
+                        <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
+                    </article>
+                    <article class="capability-row">
+                        <h3>Interpret</h3>
+                        <p>Built-in references for regression, panel data, DiD, IV, RDD, matching, graphics, and community packages.</p>
+                        <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
+                    </article>
+                    <article class="capability-row">
+                        <h3>Deliver</h3>
+                        <p>Compact JSON responses, token-aware output, logs, and automatic PNG, SVG, or PDF graph export.</p>
+                        <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
+                    </article>
                 </div>
             </div>
-        </div>
-    </div>
-</section>
+        </section>
 
-<!-- Commands -->
-<section class="commands" id="commands">
-    <div class="container">
-        <div class="section-header">
-            <h2>Commands</h2>
-            <p>14 commands covering the full Stata workflow.</p>
-        </div>
-        <table class="commands-table">
-            <thead>
-                <tr>
-                    <th>Command</th>
-                    <th>Description</th>
-                    <th>Example</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr>
-                    <td><code>run</code></td>
-                    <td>Execute inline Stata code or pipe from stdin</td>
-                    <td><code>stata-cli run "regress y x"</code></td>
-                </tr>
-                <tr>
-                    <td><code>do</code></td>
-                    <td>Execute .do files with /// continuation</td>
-                    <td><code>stata-cli do analysis.do</code></td>
-                </tr>
-                <tr>
-                    <td><code>data</code></td>
-                    <td>View current dataset as JSON</td>
-                    <td><code>stata-cli data --if "price>5000"</code></td>
-                </tr>
-                <tr>
-                    <td><code>return</code></td>
-                    <td>Retrieve r(), e(), s() stored results</td>
-                    <td><code>stata-cli return e</code></td>
-                </tr>
-                <tr>
-                    <td><code>vars</code></td>
-                    <td>Inspect variable metadata</td>
-                    <td><code>stata-cli vars price mpg</code></td>
-                </tr>
-                <tr>
-                    <td><code>matrix</code></td>
-                    <td>Read Stata matrices as JSON</td>
-                    <td><code>stata-cli matrix e(b)</code></td>
-                </tr>
-                <tr>
-                    <td><code>labels</code></td>
-                    <td>List and inspect value labels</td>
-                    <td><code>stata-cli labels origin</code></td>
-                </tr>
-                <tr>
-                    <td><code>macro</code></td>
-                    <td>Get/set Stata macros</td>
-                    <td><code>stata-cli macro get "c(N)"</code></td>
-                </tr>
-                <tr>
-                    <td><code>frame</code></td>
-                    <td>List Stata frames</td>
-                    <td><code>stata-cli frame</code></td>
-                </tr>
-                <tr>
-                    <td><code>skill</code></td>
-                    <td>Built-in Stata reference library (57 topics)</td>
-                    <td><code>stata-cli skill regression</code></td>
-                </tr>
-                <tr>
-                    <td><code>help</code></td>
-                    <td>Browse Stata help topics</td>
-                    <td><code>stata-cli help regress</code></td>
-                </tr>
-                <tr>
-                    <td><code>stop</code></td>
-                    <td>Interrupt running command</td>
-                    <td><code>stata-cli stop</code></td>
-                </tr>
-                <tr>
-                    <td><code>detect</code></td>
-                    <td>Find Stata installation path</td>
-                    <td><code>stata-cli detect</code></td>
-                </tr>
-                <tr>
-                    <td><code>daemon</code></td>
-                    <td>Manage background daemon</td>
-                    <td><code>stata-cli daemon start</code></td>
-                </tr>
-            </tbody>
-        </table>
-    </div>
-</section>
+        <section class="section" id="quickstart">
+            <div class="shell quickstart-layout">
+                <div class="quickstart-copy">
+                    <div class="section-kicker">
+                        <i class="fa-solid fa-circle-play" aria-hidden="true"></i>
+                        <span>Quick start</span>
+                    </div>
+                    <h2 class="section-heading">Install.<br>Detect.<br>Run.</h2>
+                    <p>Stata 17 or newer and Python 3.9+ are all you need. Start the daemon once, then let your agent move at interactive speed.</p>
+                </div>
+                <div class="install-panel" aria-label="Installation commands">
+                    <div class="install-panel-header">
+                        <div class="install-tabs" role="tablist" aria-label="Package manager">
+                            <button class="install-tab active" type="button" role="tab" aria-selected="true" data-command="pip">pip</button>
+                            <button class="install-tab" type="button" role="tab" aria-selected="false" data-command="npx">npx</button>
+                            <button class="install-tab" type="button" role="tab" aria-selected="false" data-command="source">source</button>
+                        </div>
+                        <button class="copy-button" id="copy-button" type="button">
+                            <i class="fa-regular fa-copy" aria-hidden="true"></i>
+                            <span>Copy</span>
+                        </button>
+                    </div>
+                    <pre class="install-code" id="install-code"><span class="prompt">$</span> pip install stata-cli
+<span class="prompt">$</span> stata-cli detect
+<span class="success">Stata detected</span>
 
-<!-- Performance -->
-<section class="performance" id="performance">
-    <div class="container">
-        <div class="section-header">
-            <h2>Daemon Mode Performance</h2>
-            <p>Keep PyStata alive in the background. No more waiting for initialization.</p>
-        </div>
-        <div class="perf-comparison">
-            <div class="perf-box before">
-                <div class="time">~2.5s</div>
-                <div class="label">Without daemon</div>
+<span class="prompt">$</span> stata-cli daemon start
+<span class="prompt">$</span> stata-cli --json run "sysuse auto, clear
+regress price mpg weight"</pre>
+                </div>
             </div>
-            <div class="perf-arrow">&rarr;</div>
-            <div class="perf-box after">
-                <div class="time">~85ms</div>
-                <div class="label">With daemon</div>
-            </div>
-        </div>
-        <p class="perf-speedup"><strong>35x faster</strong> — daemon keeps PyStata initialized via Unix socket</p>
-        <div style="margin-top: 2rem; text-align: center;">
-            <p style="color: #666; font-size: 0.95rem;"><strong>Parallel Sessions</strong> — run multiple independent Stata instances with <code>--session</code></p>
-            <pre style="display: inline-block; text-align: left; background: #1a1a1a; color: #f0f0f0; padding: 1rem 1.5rem; border-radius: 8px; font-size: 0.85rem;"><code>stata-cli --session proj_a daemon start
-stata-cli --session proj_b daemon start
-stata-cli --session proj_a run "regress price mpg"
-stata-cli --session proj_b run "summarize income"</code></pre>
-        </div>
-    </div>
-</section>
+        </section>
+    </main>
 
-<!-- Footer -->
-<footer>
-    <div class="container">
-        <div class="footer-content">
-            <div class="footer-brand">
-                <h3>stata-cli</h3>
-                <p>Agent-native Stata CLI for AI coding agents and empirical research.</p>
+    <footer class="site-footer">
+        <div class="shell footer-layout">
+            <div class="footer-meta">
+                <strong>stata-cli</strong>
+                <span>Open-source software. Stata is a registered trademark of StataCorp LLC.</span>
             </div>
             <div class="footer-links">
-                <a href="https://github.com/ashuiGordon/stata-cli" target="_blank">GitHub</a>
-                <a href="https://pypi.org/project/stata-cli/" target="_blank">PyPI</a>
-                <a href="https://www.npmjs.com/package/stata-cli" target="_blank">npm</a>
-                <a href="https://github.com/ashuiGordon/stata-cli/blob/main/LICENSE" target="_blank">MIT License</a>
+                <a href="https://github.com/ashuiGordon/stata-cli" target="_blank" rel="noopener">GitHub</a>
+                <a href="https://pypi.org/project/stata-cli/" target="_blank" rel="noopener">PyPI</a>
+                <a href="https://www.npmjs.com/package/stata-cli" target="_blank" rel="noopener">npm</a>
+                <a href="https://github.com/ashuiGordon/stata-cli/releases" target="_blank" rel="noopener">Releases</a>
             </div>
         </div>
-        <div class="footer-bottom">
-            &copy; 2026 stata-cli contributors. Stata is a registered trademark of StataCorp LLC.
-        </div>
-    </div>
-</footer>
+    </footer>
 
-<script>
-function copyCode(btn) {
-    var block = btn.parentElement;
-    var code = block.querySelector('code').textContent;
-    navigator.clipboard.writeText(code).then(function() {
-        btn.textContent = 'Copied!';
-        setTimeout(function() { btn.textContent = 'Copy'; }, 2000);
-    });
-}
-</script>
+    <script>
+        const header = document.getElementById("site-header");
+        const menuButton = document.getElementById("menu-button");
+        const siteMenu = document.getElementById("site-menu");
+        const copyButton = document.getElementById("copy-button");
+        const installCode = document.getElementById("install-code");
+        const installTabs = document.querySelectorAll(".install-tab");
 
+        const commands = {
+            pip: `<span class="prompt">$</span> pip install stata-cli\n<span class="prompt">$</span> stata-cli detect\n<span class="success">Stata detected</span>\n\n<span class="prompt">$</span> stata-cli daemon start\n<span class="prompt">$</span> stata-cli --json run "sysuse auto, clear\nregress price mpg weight"`,
+            npx: `<span class="prompt">$</span> npx stata-cli detect\n<span class="success">Stata detected</span>\n\n<span class="prompt">$</span> npx stata-cli daemon start\n<span class="prompt">$</span> npx stata-cli --json run "sysuse auto, clear\nregress price mpg weight"`,
+            source: `<span class="prompt">$</span> git clone https://github.com/ashuiGordon/stata-cli.git\n<span class="prompt">$</span> cd stata-cli\n<span class="prompt">$</span> pip install -e ".[data]"\n\n<span class="prompt">$</span> stata-cli detect\n<span class="prompt">$</span> stata-cli daemon start`
+        };
+
+        function setMenu(open) {
+            menuButton.setAttribute("aria-expanded", String(open));
+            menuButton.setAttribute("aria-label", open ? "Close navigation" : "Open navigation");
+            siteMenu.classList.toggle("open", open);
+        }
+
+        menuButton.addEventListener("click", () => {
+            setMenu(menuButton.getAttribute("aria-expanded") !== "true");
+        });
+
+        siteMenu.addEventListener("click", event => {
+            if (event.target.closest("a")) setMenu(false);
+        });
+
+        document.addEventListener("click", event => {
+            if (!siteMenu.contains(event.target) && !menuButton.contains(event.target)) setMenu(false);
+        });
+
+        document.addEventListener("keydown", event => {
+            if (event.key === "Escape") setMenu(false);
+        });
+
+        window.addEventListener("scroll", () => {
+            header.classList.toggle("scrolled", window.scrollY > 12);
+        }, { passive: true });
+
+        installTabs.forEach(tab => {
+            tab.addEventListener("click", () => {
+                installTabs.forEach(item => {
+                    const active = item === tab;
+                    item.classList.toggle("active", active);
+                    item.setAttribute("aria-selected", String(active));
+                });
+                installCode.innerHTML = commands[tab.dataset.command];
+            });
+        });
+
+        copyButton.addEventListener("click", async () => {
+            await navigator.clipboard.writeText(installCode.textContent.trim());
+            copyButton.innerHTML = `<i class="fa-solid fa-check" aria-hidden="true"></i><span>Copied</span>`;
+            setTimeout(() => {
+                copyButton.innerHTML = `<i class="fa-regular fa-copy" aria-hidden="true"></i><span>Copy</span>`;
+            }, 1600);
+        });
+    </script>
 </body>
 </html>

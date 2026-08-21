@@ -1,21 +1,38 @@
 {
   "name": "stata-cli",
   "version": "0.5.2",
-  "description": "Command-line interface for running Stata commands via PyStata",
+  "description": "Agent-native Stata CLI for AI coding agents and empirical research",
   "bin": {
     "stata-cli": "bin/cli.js"
   },
   "files": [
     "bin/",
-    "src/stata_cli/"
+    "src/stata_cli/",
+    "README.md"
   ],
   "keywords": [
     "stata",
-    "cli",
+    "pystata",
+    "ai-agent",
+    "agent-tools",
+    "agent-skills",
+    "codex",
+    "claude-code",
+    "cursor",
+    "econometrics",
+    "empirical-research",
+    "causal-inference",
+    "data-analysis",
+    "data-science",
     "statistics",
-    "data-science"
+    "cli",
+    "automation"
   ],
   "license": "MIT",
+  "homepage": "https://ashuigordon.github.io/stata-cli/",
+  "bugs": {
+    "url": "https://github.com/ashuiGordon/stata-cli/issues"
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/ashuiGordon/stata-cli.git"

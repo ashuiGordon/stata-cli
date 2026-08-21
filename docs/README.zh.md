@@ -1,22 +1,22 @@
 # stata-cli
 
-> **Stata CLI Is All Reg Monkeys Need**
+> **面向实证研究的 Agent 原生 Stata CLI**
 
-![stata-cli banner](assets/banner.png)
+![stata-cli：面向 AI 编程 Agent 的 Stata 命令行工具](../assets/banner.png)
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Python Version](https://img.shields.io/badge/python-%3E%3D3.9-blue.svg)](https://www.python.org/)
 [![npm version](https://img.shields.io/npm/v/stata-cli.svg)](https://www.npmjs.com/package/stata-cli)
 
-[中文版](README.zh.md) | [English](README.md)
+[中文版](README.zh.md) | [English](../README.md)
 
-通过 PyStata 在终端中使用 [Stata](https://www.stata.com/) 的命令行工具 — 为人类用户和 AI Agent 而设计。支持运行代码、`.do` 文件、查看数据、浏览帮助、导出图表，内置守护进程模式实现亚秒级执行。
+一个基于 PyStata、面向 AI 编程 Agent 的 [Stata](https://www.stata.com/) 命令行工具。让 Codex、Claude Code、Cursor 等 Agent 能够运行 `.do` 文件、检查数据集、以 JSON 获取计量分析结果并导出图表；常驻守护进程可加速连续实证分析。
 
 [安装](#安装与快速开始) · [AI Agent](#ai-agent-快速开始) · [命令](#命令) · [守护进程](#守护进程模式) · [进阶](#进阶用法) · [贡献](#贡献)
 
 ## 为什么选择 stata-cli？
 
-- **Agent 原生设计** — 结构化 JSON 输出、退出码、内置 [SKILL.md](SKILL.md) 定义 — AI Agent 无需额外配置即可操作 Stata
+- **Agent 原生设计** — 结构化 JSON 输出、退出码、内置 [SKILL.md](../SKILL.md) 定义 — AI Agent 无需额外配置即可操作 Stata
 - **亚秒级执行** — 守护进程模式在后台保持 PyStata 常驻，启动时间从 ~2-3 秒降至 ~85 毫秒（35 倍加速）
 - **功能全覆盖** — 运行代码、执行 `.do` 文件、查看数据、浏览帮助、导出图表、中断执行 — 一个工具搞定一切
 - **AI 友好优化** — 精简输出模式、Token 限制管理、结构化 JSON 响应、图表自动命名 — 专为 Agent 工具调用设计

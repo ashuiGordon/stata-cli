@@ -1,16 +1,16 @@
 # stata-cli
 
-> **Stata CLI Is All Reg Monkeys Need**
+> **The agent-native Stata CLI for empirical research**
 
-![stata-cli banner](assets/banner.png)
+![stata-cli: agent-native Stata CLI for AI coding agents](assets/banner.png)
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Python Version](https://img.shields.io/badge/python-%3E%3D3.9-blue.svg)](https://www.python.org/)
 [![npm version](https://img.shields.io/npm/v/stata-cli.svg)](https://www.npmjs.com/package/stata-cli)
 
-[中文版](README.zh.md) | [English](README.md)
+[中文版](docs/README.zh.md) | [English](README.md)
 
-A command-line interface for [Stata](https://www.stata.com/) via PyStata — built for humans and AI Agents. Run Stata code, `.do` files, view data, get help, and export graphs, all from the terminal. Includes a daemon mode for sub-second execution.
+An agent-native command-line interface for [Stata](https://www.stata.com/) via PyStata. Let Codex, Claude Code, Cursor, and other AI coding agents run `.do` files, inspect datasets, retrieve econometric results as JSON, and export graphs from the terminal. A persistent daemon keeps repeated analyses fast.
 
 [Install](#installation--quick-start) · [AI Agent](#quick-start-ai-agent) · [Commands](#commands) · [Daemon](#daemon-mode) · [Advanced](#advanced-usage) · [Contributing](#contributing)
 

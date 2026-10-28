@@ -1,3 +1,5 @@
+
+
 # stata-cli
 
 > **The agent-native Stata CLI for empirical research**
@@ -194,6 +196,16 @@ stata-cli detect
 ```
 
 Prints the auto-detected Stata installation path.
+
+### `config` — Manage Persistent Configuration
+
+```bash
+stata-cli config list
+stata-cli config set stata-path "/path/to/stata"
+stata-cli config get stata-path
+```
+
+Stores settings in `~/.stata-cli/config.json` (e.g., custom Stata path) to avoid passing flags repeatedly.
 
 ### `return` — Retrieve Stored Results
 
